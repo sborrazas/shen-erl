@@ -31,7 +31,6 @@ $(BINDIR)/%: $(CSRCDIR)/%.c
 	mkdir -p $(BINDIR)
 	$(CC) -c -o $@ $< -Wall -Wextra -pedantic $(CFLAGS)
 
-
 ## Compile .erl files
 $(EBINDIR)/%.beam: $(SRCDIR)/%.erl
 	@$(INSTALL_DIR) $(EBINDIR)
@@ -45,3 +44,10 @@ erlc-compile: $(addprefix $(EBINDIR)/, $(EBINS)) $(addprefix $(BINDIR)/, $(BINS)
 
 ## shen-erlang compile
 $(EXE): erlc-compile
+
+## Lexer & parser
+lexer:
+	erl -noshell -eval 'leex:file("src/kl_scan"), init:stop().'
+
+parser:
+	erl -noshell -eval 'yecc:file("src/kl_parse"), init:stop().'
