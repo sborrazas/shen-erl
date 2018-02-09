@@ -24,7 +24,7 @@ EBINS = $(ESRCS:.erl=.beam)
 ERLCFLAGS = -W1 +debug_info
 ERLC = erlc
 
-EXE := shen-erlang
+EXE := shen-erl
 
 ## Compile C files
 $(BINDIR)/%: $(CSRCDIR)/%.c
