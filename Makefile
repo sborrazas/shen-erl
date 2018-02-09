@@ -29,7 +29,7 @@ EXE := shen-erlang
 ## Compile C files
 $(BINDIR)/%: $(CSRCDIR)/%.c
 	mkdir -p $(BINDIR)
-	$(CC) -c -o $@ $< -Wall -Wextra -pedantic $(CFLAGS)
+	$(CC) -o $@ $^ -Wall -Wextra -pedantic $(CFLAGS)
 
 ## Compile .erl files
 $(EBINDIR)/%.beam: $(SRCDIR)/%.erl
@@ -41,6 +41,10 @@ all: $(EXE)
 ## Compile Erlang files using erlc
 .PHONY: erlc-compile
 erlc-compile: $(addprefix $(EBINDIR)/, $(EBINS)) $(addprefix $(BINDIR)/, $(BINS))
+
+.PHONY: clean
+clean:
+	rm -rf $(EBINDIR)/*.beam bin/*
 
 ## shen-erlang compile
 $(EXE): erlc-compile
