@@ -1,0 +1,8 @@
+{application, shen_erl,
+ [{description, "Shen Erlang Port"},
+  {vsn, "0.0.1"},
+  {applications, [kernel,
+                  stdlib]},
+  {modules, []},
+  {registered, []},
+  {env, []}]}.

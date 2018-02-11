@@ -1,3 +1,5 @@
+BASE_DIR = $(shell pwd)
+
 INSTALL = install
 INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
@@ -55,3 +57,18 @@ lexer:
 
 parser:
 	erl -noshell -eval 'yecc:file("src/shen_erl_kl_parse"), init:stop().'
+
+################################################################################
+## DOCKER
+################################################################################
+
+DOCKER_ERLANG_IMAGE = erlang:20.0.2
+
+.PHONY: docker-test
+docker-test:
+	@docker run --rm \
+							--volume "$(BASE_DIR)":/app \
+							--volume "$(BASE_DIR)/Erlmakefile":/app/Makefile \
+							--workdir /app \
+							$(DOCKER_ERLANG_IMAGE) \
+							/bin/bash -c "make tests"

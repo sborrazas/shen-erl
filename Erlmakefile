@@ -1,0 +1,20 @@
+BASE_DIR = $(shell pwd)
+
+################################################################################
+# erlang.mk Makefile
+################################################################################
+
+PROJECT = shen_erl
+PROJECT_DESCRIPTION = Shen Erlang Port
+PROJECT_VERSION = 0.0.1
+
+CT_LOGS_DIR = test/logs
+CT_OPTS = -spec test/default.spec
+
+ERLC_OPTS = +debug_info +report +verbose +warn_export_all \
+	+warn_export_vars +warn_obsolete_guard +warn_shadow_vars +warn_untyped_record \
+	+warn_unused_import +warnings_as_errors
+
+C_SRC_DIR = none # Ignore C files
+
+include erlang.mk
