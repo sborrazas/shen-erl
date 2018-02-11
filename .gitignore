@@ -2,3 +2,5 @@ bin/shen-erlang
 ebin/*
 bin/*
 erl_crash.dump
+/src/shen_erl_kl_parse.erl
+/src/shen_erl_kl_scan.erl

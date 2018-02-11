@@ -22,10 +22,19 @@ Erlang code.
 %% API
 -export([parse_tree/1]).
 
+%% Types
+-type kl_tree() :: atom() |
+                   number() |
+                   string() |
+                   [kl_tree()].
+
+-export_type([kl_tree/0]).
+
 %%%===================================================================
 %%% API
 %%%===================================================================
 
+-spec parse_tree(list()) -> {ok, kl_tree()} | {error, binary()}.
 parse_tree(Tokens) ->
   case parse(Tokens) of
     {ok, Exps} -> {ok, exp_tree(Exps)};
@@ -36,8 +45,8 @@ parse_tree(Tokens) ->
 %%% Internal functions
 %%%===================================================================
 
-type(Token) -> element(1, Token).
-line(Token) -> element(2, Token).
+% type(Token) -> element(1, Token).
+% line(Token) -> element(2, Token).
 value(Token) -> element(3, Token).
 
 exp_tree([Exp | Rest]) when is_list(Exp) ->
