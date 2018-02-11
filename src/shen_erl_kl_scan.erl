@@ -6,13 +6,13 @@
 %% property of the creator of the scanner and is not covered by that
 %% Copyright.
 
--module(kl_scan).
+-module(shen_erl_kl_scan).
 
 -export([string/1,string/2,token/2,token/3,tokens/2,tokens/3]).
 -export([format_error/1]).
 
 %% User code. This is placed here to allow extra attributes.
--file("src/kl_scan.xrl", 26).
+-file("src/shen_erl_kl_scan.xrl", 26).
 
 -file("/usr/local/opt/asdf/installs/erlang/20.1/lib/erlang/lib/parsetools-2.1.5/include/leexinc.hrl", 14).
 
@@ -301,7 +301,7 @@ adjust_line(T, A, [_|Cs], L) ->
 %% return signal either an unrecognised character or end of current
 %% input.
 
--file("src/kl_scan.erl", 303).
+-file("src/shen_erl_kl_scan.erl", 303).
 yystate() -> 6.
 
 yystate(9, [33|Ics], Line, Tlen, _, _) ->
@@ -445,32 +445,32 @@ yyaction(5, _, _, _) ->
 yyaction(_, _, _, _) -> error.
 
 -compile({inline,yyaction_0/2}).
--file("src/kl_scan.xrl", 9).
+-file("src/shen_erl_kl_scan.xrl", 9).
 yyaction_0(TokenChars, TokenLine) ->
      { token, { number, TokenLine, list_to_integer (TokenChars) } } .
 
 -compile({inline,yyaction_1/2}).
--file("src/kl_scan.xrl", 10).
+-file("src/shen_erl_kl_scan.xrl", 10).
 yyaction_1(TokenChars, TokenLine) ->
      { token, { number, TokenLine, list_to_float (TokenChars) } } .
 
 -compile({inline,yyaction_2/3}).
--file("src/kl_scan.xrl", 13).
+-file("src/shen_erl_kl_scan.xrl", 13).
 yyaction_2(TokenChars, TokenLen, TokenLine) ->
      { token, { string, TokenLine, string : substr (TokenChars, 2, TokenLen - 2) } } .
 
 -compile({inline,yyaction_3/2}).
--file("src/kl_scan.xrl", 16).
+-file("src/shen_erl_kl_scan.xrl", 16).
 yyaction_3(TokenChars, TokenLine) ->
      { token, { symbol, TokenLine, list_to_atom (TokenChars) } } .
 
 -compile({inline,yyaction_4/2}).
--file("src/kl_scan.xrl", 19).
+-file("src/shen_erl_kl_scan.xrl", 19).
 yyaction_4(TokenChars, TokenLine) ->
      { token, { list_to_atom (TokenChars), TokenLine } } .
 
 -compile({inline,yyaction_5/0}).
--file("src/kl_scan.xrl", 22).
+-file("src/shen_erl_kl_scan.xrl", 22).
 yyaction_5() ->
      skip_token .
 

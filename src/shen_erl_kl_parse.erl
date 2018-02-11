@@ -1,6 +1,34 @@
--module(kl_parse).
+-module(shen_erl_kl_parse).
 -export([parse/1, parse_and_scan/1, format_error/1]).
--file("src/kl_parse.yrl", 20).
+-file("src/shen_erl_kl_parse.yrl", 20).
+
+%% API
+-export([parse_tree/1]).
+
+%%%===================================================================
+%%% API
+%%%===================================================================
+
+parse_tree(Tokens) ->
+  case parse(Tokens) of
+    {ok, Exps} -> {ok, exp_tree(Exps)};
+    {error, Reason} -> {error, Reason}
+  end.
+
+%%%===================================================================
+%%% Internal functions
+%%%===================================================================
+
+type(Token) -> element(1, Token).
+line(Token) -> element(2, Token).
+value(Token) -> element(3, Token).
+
+exp_tree([Exp | Rest]) when is_list(Exp) ->
+  [[exp_tree(E) || E <- Exp] | exp_tree(Rest)];
+exp_tree([Exp | Rest]) ->
+  [exp_tree(Exp) | exp_tree(Rest)];
+exp_tree([]) -> [];
+exp_tree(Exp) -> value(Exp).
 
 -file("/usr/local/opt/asdf/installs/erlang/20.1/lib/erlang/lib/parsetools-2.1.5/include/yeccpre.hrl", 0).
 %%
@@ -175,7 +203,7 @@ yecctoken2string(Other) ->
 
 
 
--file("src/kl_parse.erl", 178).
+-file("src/shen_erl_kl_parse.erl", 206).
 
 -dialyzer({nowarn_function, yeccpars2/7}).
 yeccpars2(0=S, Cat, Ss, Stack, T, Ts, Tzr) ->
@@ -298,7 +326,7 @@ yeccgoto_list(4=_S, Cat, Ss, Stack, T, Ts, Tzr) ->
  yeccpars2_1(_S, Cat, Ss, Stack, T, Ts, Tzr).
 
 -compile({inline,yeccpars2_3_/1}).
--file("src/kl_parse.yrl", 6).
+-file("src/shen_erl_kl_parse.yrl", 6).
 yeccpars2_3_(__Stack0) ->
  [__1 | __Stack] = __Stack0,
  [begin
@@ -306,7 +334,7 @@ yeccpars2_3_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_9_/1}).
--file("src/kl_parse.yrl", 13).
+-file("src/shen_erl_kl_parse.yrl", 13).
 yeccpars2_9_(__Stack0) ->
  [__2,__1 | __Stack] = __Stack0,
  [begin
@@ -314,7 +342,7 @@ yeccpars2_9_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_10_/1}).
--file("src/kl_parse.yrl", 14).
+-file("src/shen_erl_kl_parse.yrl", 14).
 yeccpars2_10_(__Stack0) ->
  [__3,__2,__1 | __Stack] = __Stack0,
  [begin
@@ -322,7 +350,7 @@ yeccpars2_10_(__Stack0) ->
   end | __Stack].
 
 -compile({inline,yeccpars2_11_/1}).
--file("src/kl_parse.yrl", 5).
+-file("src/shen_erl_kl_parse.yrl", 5).
 yeccpars2_11_(__Stack0) ->
  [__2,__1 | __Stack] = __Stack0,
  [begin
@@ -330,4 +358,4 @@ yeccpars2_11_(__Stack0) ->
   end | __Stack].
 
 
--file("src/kl_parse.yrl", 21).
+-file("src/shen_erl_kl_parse.yrl", 49).

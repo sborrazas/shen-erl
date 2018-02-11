@@ -44,14 +44,14 @@ erlc-compile: $(addprefix $(EBINDIR)/, $(EBINS)) $(addprefix $(BINDIR)/, $(BINS)
 
 .PHONY: clean
 clean:
-	rm -rf $(EBINDIR)/*.beam bin/*
+	rm -rf $(EBINDIR)/*.beam bin/* erl_crash.dump
 
 ## shen-erlang compile
 $(EXE): erlc-compile
 
 ## Lexer & parser
 lexer:
-	erl -noshell -eval 'leex:file("src/kl_scan"), init:stop().'
+	erl -noshell -eval 'leex:file("src/shen_erl_kl_scan"), init:stop().'
 
 parser:
-	erl -noshell -eval 'yecc:file("src/kl_parse"), init:stop().'
+	erl -noshell -eval 'yecc:file("src/shen_erl_kl_parse"), init:stop().'
