@@ -72,3 +72,12 @@ docker-test:
 							--workdir /app \
 							$(DOCKER_ERLANG_IMAGE) \
 							/bin/bash -c "make tests"
+
+.PHONY: docker-dialyze
+docker-dialyze:
+	@docker run --rm \
+							--volume "$(BASE_DIR)":/app \
+							--volume "$(BASE_DIR)/Erlmakefile":/app/Makefile \
+							--workdir /app \
+							$(DOCKER_ERLANG_IMAGE) \
+							/bin/bash -c "make dialyze"

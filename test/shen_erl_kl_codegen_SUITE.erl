@@ -5,7 +5,7 @@
          groups/0,
          init_per_suite/1,
          end_per_suite/1,
-         t_compile/1]).
+         t_compile_xor/1]).
 
 -include_lib("common_test/include/ct.hrl").
 
@@ -16,7 +16,7 @@
 groups() ->
   [{compile,
     [],
-    [t_compile]}].
+    [t_compile_xor]}].
 
 suite() ->
   [{timetrap, {minutes, 1}}].
@@ -34,5 +34,14 @@ end_per_suite(_Config) ->
 %%% Test cases
 %%%===================================================================
 
-t_compile(Config) ->
-  Config.
+t_compile_xor(_Config) ->
+  Mod = xormod,
+  Fun = 'xor',
+  Xor = [defun, Fun, ['X', 'Y'],
+         ['and', ['or', 'X', 'Y'], ['not', ['and', 'X', 'Y']]]],
+  {ok, Mod, Bin} = shen_erl_kl_codegen:compile_module(Mod, [Xor]),
+  code:load_binary(Mod, [], Bin),
+  false = Mod:Fun(false, false),
+  true = Mod:Fun(true, false),
+  true = Mod:Fun(false, true),
+  false = Mod:Fun(true, true).
