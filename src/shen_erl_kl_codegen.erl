@@ -73,35 +73,78 @@ compile_toplevel([Exp | Rest], Code = #code{toplevel = Toplevel}) ->
 compile_toplevel([], Code = #code{signatures = Signatures, toplevel = Toplevel}) ->
   Code#code{signatures = lists:reverse(Signatures), toplevel = lists:reverse(Toplevel)}.
 
-compile_exp([], _Env) ->
+%% Lists
+compile_exp([], _Env) -> % ()
   erl_syntax:nil();
-compile_exp(['and', Exp1, Exp2], Env) ->
+
+%% Boolean operators
+compile_exp(['and', Exp1, Exp2], Env) -> % (and Exp1 Exp2)
   CExp1 = compile_exp(Exp1, Env),
   CExp2 = compile_exp(Exp2, Env),
   erl_syntax:infix_expr(CExp1, erl_syntax:operator("and"), CExp2);
-compile_exp(['or', Exp1, Exp2], Env) ->
+compile_exp(['or', Exp1, Exp2], Env) -> % (or Exp1 Exp2)
   CExp1 = compile_exp(Exp1, Env),
   CExp2 = compile_exp(Exp2, Env),
   erl_syntax:infix_expr(CExp1, erl_syntax:operator("or"), CExp2);
-compile_exp(['not', Exp], Env) ->
+compile_exp(['not', Exp], Env) -> % (not Exp)
   CExp = compile_exp(Exp, Env),
   erl_syntax:prefix_expr(erl_syntax:operator("not"), CExp);
-compile_exp(Exp, Env) when is_atom(Exp) ->
+
+%% Symbols and variables
+compile_exp(Exp, Env) when is_atom(Exp) -> % a
   case shen_erl_kl_env:fetch(Env, Exp) of
     {ok, VarName} -> erl_syntax:variable(VarName);
     not_found -> erl_syntax:atom(Exp)
   end;
-compile_exp(Exp, _Env) when is_integer(Exp) ->
+
+%% Numbers
+compile_exp(Exp, _Env) when is_integer(Exp) -> % 1
   erl_syntax:integer(Exp);
-compile_exp(Exp, _Env) when is_float(Exp) ->
+compile_exp(Exp, _Env) when is_float(Exp) -> % 2.2
   erl_syntax:float(Exp);
-compile_exp([FunName | Args], Env) ->
-  _Args2 = [compile_exp(Arg, Env) || Arg <- Args],
-  case shen_erl_kl_env:fetch(Env, FunName) of
-    {ok, _VarName} -> ok; % TODO
-    not_found -> ok % TODO
+
+%% lambda
+compile_exp([lambda, Var, Body], Env) when is_atom(Var) -> % (lambda X (+ X 2))
+  {VarName, Env2} = shen_erl_kl_env:new_var(Env, Var),
+  Body2 = compile_exp(Body, Env2),
+  Clause = erl_syntax:clause([erl_syntax:variable(VarName)], [], [Body2]),
+  erl_syntax:fun_expr([Clause]);
+
+%% let
+compile_exp(['let', Var, Value, Body], Env) when is_atom(Var) -> % (let X (+ 2 2) (+ X 3))
+  {VarName, Env2} = shen_erl_kl_env:new_var(Env, Var),
+  Value2 = compile_exp(Value, Env),
+  Body2 = compile_exp(Body, Env2),
+  Clause = erl_syntax:clause([erl_syntax:variable(VarName)], [], [Body2]),
+  erl_syntax:case_expr(Value2, [Clause]);
+
+%% Function application
+compile_exp([Op | Args], Env) -> % (a b c)
+  Args2 = [compile_exp(Arg, Env) || Arg <- Args],
+  case shen_erl_kl_env:fetch(Env, Op) of
+    {ok, VarName} ->
+      erl_syntax:application(erl_syntax:variable(VarName), Args2);
+    not_found ->
+      case op_arity(Op) of
+        {ok, Arity} -> compile_application(Op, Arity, Args2);
+        not_found ->
+          Op2 = compile_exp(Op, Env),
+          erl_syntax:application(Op2, Args2)
+      end
   end.
 
+compile_application(Op, Arity, Args) when Arity =:= length(Args) ->
+  erl_syntax:application(erl_syntax:atom(erlang), erl_syntax:atom(Op), Args).
+
+op_arity('+') -> {ok, 2};
+op_arity('*') -> {ok, 2};
+op_arity('/') -> {ok, 2};
+op_arity('-') -> {ok, 2};
+op_arity('and') -> {ok, 2};
+op_arity('or') -> {ok, 2};
+op_arity(_) -> not_found.
+
+%% Helper functions
 fun_vars(Args, Env) ->
   {Args2, Env2} = lists:foldl(fun fun_var/2, {[], Env}, Args),
   {lists:reverse(Args2), Env2}.
