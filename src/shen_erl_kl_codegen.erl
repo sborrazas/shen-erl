@@ -114,9 +114,9 @@ compile_exp([lambda, Var, Body], Env) when is_atom(Var) -> % (lambda X (+ X 2))
 compile_exp(['let', Var, Value, Body], Env) when is_atom(Var) -> % (let X (+ 2 2) (+ X 3))
   {VarName, Env2} = shen_erl_kl_env:new_var(Env, Var),
   Value2 = compile_exp(Value, Env),
+  Assignment = erl_syntax:match_expr(erl_syntax:variable(VarName), Value2),
   Body2 = compile_exp(Body, Env2),
-  Clause = erl_syntax:clause([erl_syntax:variable(VarName)], [], [Body2]),
-  erl_syntax:case_expr(Value2, [Clause]);
+  erl_syntax:block_expr([Assignment, Body2]);
 
 %% Function application
 compile_exp([Op | Args], Env) -> % (a b c)
