@@ -130,6 +130,15 @@ compile_exp(['let', Var, Value, Body], Env) when is_atom(Var) -> % (let X (+ 2 2
   Body2 = compile_exp(Body, Env2),
   erl_syntax:block_expr([Assignment, Body2]);
 
+%% if
+compile_exp(['if', Exp, ExpTrue, ExpFalse], Env) ->
+  CExp = compile_exp(Exp, Env),
+  CExpTrue = compile_exp(ExpTrue, Env),
+  CExpFalse = compile_exp(ExpFalse, Env),
+  TrueClause = erl_syntax:clause([erl_syntax:atom(true)], none, [CExpTrue]),
+  FalseClause = erl_syntax:clause([erl_syntax:atom(false)], none, [CExpFalse]),
+  erl_syntax:case_expr(CExp, [TrueClause, FalseClause]);
+
 %% Lazy values
 compile_exp([freeze, Body], Env) ->
   Body2 = compile_exp(Body, Env),
@@ -160,6 +169,7 @@ op_arity('/') -> {ok, 2};
 op_arity('-') -> {ok, 2};
 op_arity('and') -> {ok, 2};
 op_arity('or') -> {ok, 2};
+op_arity('>') -> {ok, 2};
 op_arity(_) -> not_found.
 
 %% Helper functions
