@@ -156,10 +156,10 @@ compile_exp([Op | Args], Env) when is_atom(Op) -> % (a b c)
       compile_dynamic_app(erl_syntax:variable(VarName), CArgs);
     not_found ->
       %% Case 1.2: Function operator is a global function
-      case op_arity(Op) of
-        {ok, Arity} ->
+      case shen_erl_kl_primitives:fun_mfa(Op) of
+        {ok, {Mod, FunName, Arity}} ->
           % 1.2.1: Function operator is a global predefined function
-          compile_static_app(Op, Arity, CArgs, Env);
+          compile_static_app(erl_syntax:module_qualifier(erl_syntax:atom(Mod), erl_syntax:atom(FunName)), Arity, CArgs, Env);
         not_found ->
           % 1.2.2: Function operator is a global user-defined function
           erl_syntax:application(erl_syntax:module_qualifier(erl_syntax:atom(Op), erl_syntax:atom(Op)), CArgs)
@@ -179,22 +179,16 @@ compile_dynamic_app(COp, [CArg]) -> % Single argument application
 compile_dynamic_app(COp, [CArg | RestCArgs]) -> % Multiple argument application
   compile_dynamic_app(compile_dynamic_app(COp, [CArg]), RestCArgs).
 
-compile_static_app(Op, Arity, Args, _Env) when Arity =:= length(Args) ->
-  erl_syntax:application(erl_syntax:atom(erlang), erl_syntax:atom(Op), Args);
-compile_static_app(Op, Arity, Args, Env) when Arity > length(Args) ->
+compile_static_app(COp, Arity, CArgs, _Env) when Arity =:= length(CArgs) ->
+  erl_syntax:application(COp, CArgs);
+compile_static_app(COp, Arity, CArgs, Env) when Arity > length(CArgs) ->
   {VarName, Env2} = shen_erl_kl_env:new_var(Env, newvar),
-  CBody = compile_static_app(Op, Arity, Args ++ [erl_syntax:variable(VarName)], Env2),
+  CBody = compile_static_app(COp, Arity, CArgs ++ [erl_syntax:variable(VarName)], Env2),
   Clause = erl_syntax:clause([erl_syntax:variable(VarName)], [], [CBody]),
-  erl_syntax:fun_expr([Clause]).
-
-op_arity('+') -> {ok, 2};
-op_arity('*') -> {ok, 2};
-op_arity('/') -> {ok, 2};
-op_arity('-') -> {ok, 2};
-op_arity('and') -> {ok, 2};
-op_arity('or') -> {ok, 2};
-op_arity('>') -> {ok, 2};
-op_arity(_) -> not_found.
+  erl_syntax:fun_expr([Clause]);
+compile_static_app(COp, Arity, CArgs, Env) when Arity < length(CArgs) ->
+  {StaticCArgs, DynamicCArgs} = lists:split(Arity, CArgs),
+  compile_dynamic_app(compile_static_app(COp, Arity, StaticCArgs, Env), DynamicCArgs).
 
 %% Helper functions
 fun_vars(Args, Env) ->

@@ -15,7 +15,8 @@
          t_compile_dynamic_app_var_with_external_fun/1,
          t_compile_dynamic_app_var_freeze/1,
          t_compile_static_app/1,
-         t_compile_static_app_less_params/1]).
+         t_compile_static_app_less_params/1,
+         t_compile_static_app_more_params/1]).
 
 -include_lib("common_test/include/ct.hrl").
 
@@ -36,7 +37,8 @@ groups() ->
      t_compile_dynamic_app_var_with_external_fun,
      t_compile_dynamic_app_var_freeze,
      t_compile_static_app,
-     t_compile_static_app_less_params]}].
+     t_compile_static_app_less_params,
+     t_compile_static_app_more_params]}].
 
 suite() ->
   [{timetrap, {minutes, 1}}].
@@ -143,6 +145,13 @@ t_compile_static_app_less_params(_Config) ->
   compile_and_load([SumCurry]),
   3 = sumcurry:sumcurry(1, 2),
   0 = sumcurry:sumcurry(-1, 1).
+
+t_compile_static_app_more_params(_Config) ->
+  Sum = [lambda, 'A', [lambda, 'B', ['+', 'A', 'B']]],
+  WeirdSum = [defun, 'sum', ['X', 'Y'], ['if', true, Sum, 3, 'X', 'Y']],
+  compile_and_load([WeirdSum]),
+  3 = sum:sum(1, 2),
+  0 = sum:sum(-1, 1).
 
 %%%===================================================================
 %%% Internal functions
