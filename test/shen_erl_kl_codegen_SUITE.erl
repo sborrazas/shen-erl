@@ -10,10 +10,11 @@
          t_compile_mult/1,
          t_compile_if/1,
          t_compile_freeze/1,
-         t_compile_lambda_app/1,
-         t_compile_var_app/1,
-         t_compile_mod_fun_app/1,
-         t_compile_external_fun_app/1]).
+         t_compile_dynamic_app_lambda/1,
+         t_compile_dynamic_app_var/1,
+         t_compile_dynamic_app_var_with_external_fun/1,
+         t_compile_dynamic_app_var_freeze/1,
+         t_compile_static_app/1]).
 
 -include_lib("common_test/include/ct.hrl").
 
@@ -29,10 +30,11 @@ groups() ->
      t_compile_mult,
      t_compile_if,
      t_compile_freeze,
-     t_compile_lambda_app,
-     t_compile_var_app,
-     t_compile_mod_fun_app,
-     t_compile_external_fun_app]}].
+     t_compile_dynamic_app_lambda,
+     t_compile_dynamic_app_var,
+     t_compile_dynamic_app_var_with_external_fun,
+     t_compile_dynamic_app_var_freeze,
+     t_compile_static_app]}].
 
 suite() ->
   [{timetrap, {minutes, 1}}].
@@ -77,7 +79,7 @@ t_compile_mult(_Config) ->
   3.2 = mult:mult(1.6, 2),
   4.4 = mult:mult(2.2, 2.0).
 
-% if
+%% if
 t_compile_if(_Config) ->
   Max = [defun, 'max', ['X', 'Y'], ['if', ['>', 'X', 'Y'], 'X', 'Y']],
   compile_and_load([Max]),
@@ -93,7 +95,7 @@ t_compile_freeze(_Config) ->
   3 = (lazy:lazy(1))().
 
 %% Variables and function applications
-t_compile_lambda_app(_Config) ->
+t_compile_dynamic_app_lambda(_Config) ->
   PlusTwo = [lambda, 'X', ['+', 'X', 2]],
   PlusFour = [defun, 'plusfour', ['X'], [PlusTwo, [PlusTwo, 'X']]],
   compile_and_load([PlusFour]),
@@ -101,7 +103,7 @@ t_compile_lambda_app(_Config) ->
   4 = plusfour:plusfour(0),
   6 = plusfour:plusfour(2).
 
-t_compile_var_app(_Config) ->
+t_compile_dynamic_app_var(_Config) ->
   PlusTwo = [lambda, 'X', ['+', 'X', 2]],
   PlusFour = [defun, 'plusfour', ['X'], ['let', 'P2', PlusTwo, ['P2', ['P2', 'X']]]],
   compile_and_load([PlusFour]),
@@ -109,15 +111,24 @@ t_compile_var_app(_Config) ->
   4 = plusfour:plusfour(0),
   6 = plusfour:plusfour(2).
 
-t_compile_mod_fun_app(_Config) ->
-  PlusTwo = [defun, 'plustwo', ['X'], ['+', 'X', 2]],
-  PlusFour = [defun, 'plusfour', ['X'], ['plustwo', ['plustwo', 'X']]],
-  compile_and_load([PlusTwo, PlusFour]),
+t_compile_dynamic_app_var_with_external_fun(_Config) -> % Variable takes precedence
+  P2Defun = [defun, 'P2', ['Z'], [10]],
+  PlusTwo = [lambda, 'X', ['+', 'X', 2]],
+  PlusFour = [defun, 'plusfour', ['X'], ['let', 'P2', PlusTwo, ['P2', ['P2', 'X']]]],
+  compile_and_load([P2Defun, PlusFour]),
   2 = plusfour:plusfour(-2),
   4 = plusfour:plusfour(0),
   6 = plusfour:plusfour(2).
 
-t_compile_external_fun_app(_Config) ->
+t_compile_dynamic_app_var_freeze(_Config) ->
+  XPlusTwoLazy = [freeze, ['+', 'X', 2]],
+  PlusTwo = [defun, 'plustwo', ['X'], ['let', 'XP2', XPlusTwoLazy, ['XP2']]],
+  compile_and_load([PlusTwo]),
+  0 = plustwo:plustwo(-2),
+  2 = plustwo:plustwo(0),
+  4 = plustwo:plustwo(2).
+
+t_compile_static_app(_Config) ->
   PlusTwo = [defun, 'plustwo', ['X'], ['+', 'X', 2]],
   PlusFour = [defun, 'plusfour', ['X'], ['plustwo', ['plustwo', 'X']]],
   compile_and_load([PlusTwo, PlusFour]),

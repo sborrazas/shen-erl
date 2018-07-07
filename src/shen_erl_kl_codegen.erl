@@ -118,8 +118,8 @@ compile_exp(Exp, _Env) when is_float(Exp) -> % 2.2
 %% lambda
 compile_exp([lambda, Var, Body], Env) when is_atom(Var) -> % (lambda X (+ X 2))
   {VarName, Env2} = shen_erl_kl_env:new_var(Env, Var),
-  Body2 = compile_exp(Body, Env2),
-  Clause = erl_syntax:clause([erl_syntax:variable(VarName)], [], [Body2]),
+  CBody = compile_exp(Body, Env2),
+  Clause = erl_syntax:clause([erl_syntax:variable(VarName)], [], [CBody]),
   erl_syntax:fun_expr([Clause]);
 
 %% let
@@ -127,8 +127,8 @@ compile_exp(['let', Var, Value, Body], Env) when is_atom(Var) -> % (let X (+ 2 2
   {VarName, Env2} = shen_erl_kl_env:new_var(Env, Var),
   Value2 = compile_exp(Value, Env),
   Assignment = erl_syntax:match_expr(erl_syntax:variable(VarName), Value2),
-  Body2 = compile_exp(Body, Env2),
-  erl_syntax:block_expr([Assignment, Body2]);
+  CBody = compile_exp(Body, Env2),
+  erl_syntax:block_expr([Assignment, CBody]);
 
 %% if
 compile_exp(['if', Exp, ExpTrue, ExpFalse], Env) ->
@@ -141,47 +141,45 @@ compile_exp(['if', Exp, ExpTrue, ExpFalse], Env) ->
 
 %% Lazy values
 compile_exp([freeze, Body], Env) ->
-  Body2 = compile_exp(Body, Env),
-  Clause = erl_syntax:clause([], [], [Body2]),
+  CBody = compile_exp(Body, Env),
+  Clause = erl_syntax:clause([], [], [CBody]),
   erl_syntax:fun_expr([Clause]);
 
 %% Function applications
 
 %% Case 1: Function operator is an atom
 compile_exp([Op | Args], Env) when is_atom(Op) -> % (a b c)
-  Args2 = [compile_exp(Arg, Env) || Arg <- Args],
+  CArgs = [compile_exp(Arg, Env) || Arg <- Args],
   case shen_erl_kl_env:fetch(Env, Op) of
     {ok, VarName} ->
       %% Case 1.1: Function operator is a variable
-      erl_syntax:application(erl_syntax:variable(VarName), Args2);
+      compile_dynamic_app(erl_syntax:variable(VarName), CArgs);
     not_found ->
       %% Case 1.2: Function operator is a global function
       case op_arity(Op) of
         {ok, Arity} ->
           % 1.2.1: Function operator is a global predefined function
-          compile_application(Op, Arity, Args2);
+          compile_static_app(Op, Arity, CArgs);
         not_found ->
           % 1.2.2: Function operator is a global user-defined function
-          erl_syntax:application(erl_syntax:module_qualifier(erl_syntax:atom(Op), erl_syntax:atom(Op)), Args2)
+          erl_syntax:application(erl_syntax:module_qualifier(erl_syntax:atom(Op), erl_syntax:atom(Op)), CArgs)
       end
   end;
 
-%% Case 2: Function operator is a freezed expression
-compile_exp([Op], Env) ->
-  Op2 = compile_exp(Op, Env),
-  erl_syntax:application(Op2, []);
+%% Case 2: Function operator is not an atom
+compile_exp([Op | Args], Env) ->
+  COp = compile_exp(Op, Env),
+  CArgs = [compile_exp(Arg, Env) || Arg <- Args],
+  compile_dynamic_app(COp, CArgs).
 
-%% Case 3: Function operator is a lambda function: (a b)
-compile_exp([Op, Arg], Env) ->
-  Op2 = compile_exp(Op, Env),
-  Arg2 = compile_exp(Arg, Env),
-  erl_syntax:application(Op2, [Arg2]);
+compile_dynamic_app(COp, []) -> % Freezed expression application
+  erl_syntax:application(COp, []);
+compile_dynamic_app(COp, [CArg]) -> % Single argument application
+  erl_syntax:application(COp, [CArg]);
+compile_dynamic_app(COp, [CArg | RestCArgs]) -> % Multiple argument application
+  compile_dynamic_app(compile_dynamic_app(COp, [CArg]), RestCArgs).
 
-%% Case 4: Function operator is a lambda function with more than one param: (a b c) = ((a b) c)
-compile_exp([Op, Arg | Args], Env) ->
-  compile_exp([[Op, Arg] | Args], Env).
-
-compile_application(Op, Arity, Args) when Arity =:= length(Args) ->
+compile_static_app(Op, Arity, Args) when Arity =:= length(Args) ->
   erl_syntax:application(erl_syntax:atom(erlang), erl_syntax:atom(Op), Args).
 
 op_arity('+') -> {ok, 2};
