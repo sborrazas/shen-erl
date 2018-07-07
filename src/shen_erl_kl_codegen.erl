@@ -130,6 +130,12 @@ compile_exp(['let', Var, Value, Body], Env) when is_atom(Var) -> % (let X (+ 2 2
   Body2 = compile_exp(Body, Env2),
   erl_syntax:block_expr([Assignment, Body2]);
 
+%% Lazy values
+compile_exp([freeze, Body], Env) ->
+  Body2 = compile_exp(Body, Env),
+  Clause = erl_syntax:clause([], [], [Body2]),
+  erl_syntax:fun_expr([Clause]);
+
 %% Function application
 compile_exp([Op | Args], Env) -> % (a b c)
   Args2 = [compile_exp(Arg, Env) || Arg <- Args],

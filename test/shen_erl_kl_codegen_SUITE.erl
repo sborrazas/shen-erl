@@ -8,6 +8,7 @@
          t_compile_xor/1,
          t_compile_sum/1,
          t_compile_mult/1,
+         t_compile_freeze/1,
          t_compile_lambda_app/1,
          t_compile_var_app/1,
          t_compile_mod_fun_app/1,
@@ -25,6 +26,7 @@ groups() ->
     [t_compile_xor,
      t_compile_sum,
      t_compile_mult,
+     t_compile_freeze,
      t_compile_lambda_app,
      t_compile_var_app,
      t_compile_mod_fun_app,
@@ -72,6 +74,13 @@ t_compile_mult(_Config) ->
   3.2 = mult:mult(2, 1.6),
   3.2 = mult:mult(1.6, 2),
   4.4 = mult:mult(2.2, 2.0).
+
+
+%% freeze
+t_compile_freeze(_Config) ->
+  Lazy = [defun, 'lazy', ['X'], [freeze, ['+', 1, 2]]],
+  compile_and_load([Lazy]),
+  3 = (lazy:lazy(1))().
 
 %% Variables and function applications
 t_compile_lambda_app(_Config) ->
