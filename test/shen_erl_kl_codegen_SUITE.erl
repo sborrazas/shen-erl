@@ -118,7 +118,12 @@ t_compile_mod_fun_app(_Config) ->
   6 = plusfour:plusfour(2).
 
 t_compile_external_fun_app(_Config) ->
-  ok.
+  PlusTwo = [defun, 'plustwo', ['X'], ['+', 'X', 2]],
+  PlusFour = [defun, 'plusfour', ['X'], ['plustwo', ['plustwo', 'X']]],
+  compile_and_load([PlusTwo, PlusFour]),
+  2 = plusfour:plusfour(-2),
+  4 = plusfour:plusfour(0),
+  6 = plusfour:plusfour(2).
 
 %%%===================================================================
 %%% Internal functions

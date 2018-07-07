@@ -145,20 +145,41 @@ compile_exp([freeze, Body], Env) ->
   Clause = erl_syntax:clause([], [], [Body2]),
   erl_syntax:fun_expr([Clause]);
 
-%% Function application
-compile_exp([Op | Args], Env) -> % (a b c)
+%% Function applications
+
+%% Case 1: Function operator is an atom
+compile_exp([Op | Args], Env) when is_atom(Op) -> % (a b c)
   Args2 = [compile_exp(Arg, Env) || Arg <- Args],
   case shen_erl_kl_env:fetch(Env, Op) of
     {ok, VarName} ->
+      %% Case 1.1: Function operator is a variable
       erl_syntax:application(erl_syntax:variable(VarName), Args2);
     not_found ->
+      %% Case 1.2: Function operator is a global function
       case op_arity(Op) of
-        {ok, Arity} -> compile_application(Op, Arity, Args2);
+        {ok, Arity} ->
+          % 1.2.1: Function operator is a global predefined function
+          compile_application(Op, Arity, Args2);
         not_found ->
-          Op2 = compile_exp(Op, Env),
-          erl_syntax:application(Op2, Args2)
+          % 1.2.2: Function operator is a global user-defined function
+          erl_syntax:application(erl_syntax:module_qualifier(erl_syntax:atom(Op), erl_syntax:atom(Op)), Args2)
       end
-  end.
+  end;
+
+%% Case 2: Function operator is a freezed expression
+compile_exp([Op], Env) ->
+  Op2 = compile_exp(Op, Env),
+  erl_syntax:application(Op2, []);
+
+%% Case 3: Function operator is a lambda function: (a b)
+compile_exp([Op, Arg], Env) ->
+  Op2 = compile_exp(Op, Env),
+  Arg2 = compile_exp(Arg, Env),
+  erl_syntax:application(Op2, [Arg2]);
+
+%% Case 4: Function operator is a lambda function with more than one param: (a b c) = ((a b) c)
+compile_exp([Op, Arg | Args], Env) ->
+  compile_exp([[Op, Arg] | Args], Env).
 
 compile_application(Op, Arity, Args) when Arity =:= length(Args) ->
   erl_syntax:application(erl_syntax:atom(erlang), erl_syntax:atom(Op), Args).
