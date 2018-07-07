@@ -50,53 +50,53 @@ end_per_suite(_Config) ->
 t_compile_xor(_Config) ->
   Xor = [defun, 'xor', ['X', 'Y'],
          ['and', ['or', 'X', 'Y'], ['not', ['and', 'X', 'Y']]]],
-  compile_and_load(testmod, [Xor]),
-  false = testmod:'xor'(false, false),
-  true = testmod:'xor'(true, false),
-  true = testmod:'xor'(false, true),
-  false = testmod:'xor'(true, true).
+  compile_and_load([Xor]),
+  false = 'xor':'xor'(false, false),
+  true = 'xor':'xor'(true, false),
+  true = 'xor':'xor'(false, true),
+  false = 'xor':'xor'(true, true).
 
 %% Numeric operators
 t_compile_sum(_Config) ->
   Sum = [defun, 'sum', ['X', 'Y'], ['+', 'X', 'Y']],
-  compile_and_load(testmod, [Sum]),
-  2 = testmod:sum(1, 1),
-  3.6 = testmod:sum(2, 1.6),
-  3.6 = testmod:sum(1.6, 2),
-  4.4 = testmod:sum(2.2, 2.2).
+  compile_and_load([Sum]),
+  2 = sum:sum(1, 1),
+  3.6 = sum:sum(2, 1.6),
+  3.6 = sum:sum(1.6, 2),
+  4.4 = sum:sum(2.2, 2.2).
 
 t_compile_mult(_Config) ->
   Mult = [defun, 'mult', ['X', 'Y'], ['*', 'X', 'Y']],
-  compile_and_load(testmod, [Mult]),
-  1 = testmod:mult(1, 1),
-  3.2 = testmod:mult(2, 1.6),
-  3.2 = testmod:mult(1.6, 2),
-  4.4 = testmod:mult(2.2, 2.0).
+  compile_and_load([Mult]),
+  1 = mult:mult(1, 1),
+  3.2 = mult:mult(2, 1.6),
+  3.2 = mult:mult(1.6, 2),
+  4.4 = mult:mult(2.2, 2.0).
 
 %% Variables and function applications
 t_compile_lambda_app(_Config) ->
   PlusTwo = [lambda, 'X', ['+', 'X', 2]],
   PlusFour = [defun, 'plusfour', ['X'], [PlusTwo, [PlusTwo, 'X']]],
-  compile_and_load(testmod, [PlusFour]),
-  2 = testmod:plusfour(-2),
-  4 = testmod:plusfour(0),
-  6 = testmod:plusfour(2).
+  compile_and_load([PlusFour]),
+  2 = plusfour:plusfour(-2),
+  4 = plusfour:plusfour(0),
+  6 = plusfour:plusfour(2).
 
 t_compile_var_app(_Config) ->
   PlusTwo = [lambda, 'X', ['+', 'X', 2]],
   PlusFour = [defun, 'plusfour', ['X'], ['let', 'P2', PlusTwo, ['P2', ['P2', 'X']]]],
-  compile_and_load(testmod, [PlusFour]),
-  2 = testmod:plusfour(-2),
-  4 = testmod:plusfour(0),
-  6 = testmod:plusfour(2).
+  compile_and_load([PlusFour]),
+  2 = plusfour:plusfour(-2),
+  4 = plusfour:plusfour(0),
+  6 = plusfour:plusfour(2).
 
 t_compile_mod_fun_app(_Config) ->
   PlusTwo = [defun, 'plustwo', ['X'], ['+', 'X', 2]],
   PlusFour = [defun, 'plusfour', ['X'], ['plustwo', ['plustwo', 'X']]],
-  compile_and_load(testmod, [PlusTwo, PlusFour]),
-  2 = testmod:plusfour(-2),
-  4 = testmod:plusfour(0),
-  6 = testmod:plusfour(2).
+  compile_and_load([PlusTwo, PlusFour]),
+  2 = plusfour:plusfour(-2),
+  4 = plusfour:plusfour(0),
+  6 = plusfour:plusfour(2).
 
 t_compile_external_fun_app(_Config) ->
   ok.
@@ -105,6 +105,6 @@ t_compile_external_fun_app(_Config) ->
 %%% Internal functions
 %%%===================================================================
 
-compile_and_load(Mod, Funs) ->
-  {ok, Mod, Bin} = shen_erl_kl_codegen:compile_module(Mod, Funs),
-  code:load_binary(Mod, [], Bin).
+compile_and_load(Funs) ->
+  {ok, Binaries} = shen_erl_kl_codegen:compile(Funs),
+  [code:load_binary(Mod, [], Bin) || {Mod, Bin} <- Binaries].
