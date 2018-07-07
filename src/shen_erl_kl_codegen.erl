@@ -159,7 +159,7 @@ compile_exp([Op | Args], Env) when is_atom(Op) -> % (a b c)
       case op_arity(Op) of
         {ok, Arity} ->
           % 1.2.1: Function operator is a global predefined function
-          compile_static_app(Op, Arity, CArgs);
+          compile_static_app(Op, Arity, CArgs, Env);
         not_found ->
           % 1.2.2: Function operator is a global user-defined function
           erl_syntax:application(erl_syntax:module_qualifier(erl_syntax:atom(Op), erl_syntax:atom(Op)), CArgs)
@@ -179,8 +179,13 @@ compile_dynamic_app(COp, [CArg]) -> % Single argument application
 compile_dynamic_app(COp, [CArg | RestCArgs]) -> % Multiple argument application
   compile_dynamic_app(compile_dynamic_app(COp, [CArg]), RestCArgs).
 
-compile_static_app(Op, Arity, Args) when Arity =:= length(Args) ->
-  erl_syntax:application(erl_syntax:atom(erlang), erl_syntax:atom(Op), Args).
+compile_static_app(Op, Arity, Args, _Env) when Arity =:= length(Args) ->
+  erl_syntax:application(erl_syntax:atom(erlang), erl_syntax:atom(Op), Args);
+compile_static_app(Op, Arity, Args, Env) when Arity > length(Args) ->
+  {VarName, Env2} = shen_erl_kl_env:new_var(Env, newvar),
+  CBody = compile_static_app(Op, Arity, Args ++ [erl_syntax:variable(VarName)], Env2),
+  Clause = erl_syntax:clause([erl_syntax:variable(VarName)], [], [CBody]),
+  erl_syntax:fun_expr([Clause]).
 
 op_arity('+') -> {ok, 2};
 op_arity('*') -> {ok, 2};

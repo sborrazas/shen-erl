@@ -14,7 +14,8 @@
          t_compile_dynamic_app_var/1,
          t_compile_dynamic_app_var_with_external_fun/1,
          t_compile_dynamic_app_var_freeze/1,
-         t_compile_static_app/1]).
+         t_compile_static_app/1,
+         t_compile_static_app_less_params/1]).
 
 -include_lib("common_test/include/ct.hrl").
 
@@ -34,7 +35,8 @@ groups() ->
      t_compile_dynamic_app_var,
      t_compile_dynamic_app_var_with_external_fun,
      t_compile_dynamic_app_var_freeze,
-     t_compile_static_app]}].
+     t_compile_static_app,
+     t_compile_static_app_less_params]}].
 
 suite() ->
   [{timetrap, {minutes, 1}}].
@@ -135,6 +137,12 @@ t_compile_static_app(_Config) ->
   2 = plusfour:plusfour(-2),
   4 = plusfour:plusfour(0),
   6 = plusfour:plusfour(2).
+
+t_compile_static_app_less_params(_Config) ->
+  SumCurry = [defun, 'sumcurry', ['X', 'Y'], [['+', 'X'], 'Y']],
+  compile_and_load([SumCurry]),
+  3 = sumcurry:sumcurry(1, 2),
+  0 = sumcurry:sumcurry(-1, 1).
 
 %%%===================================================================
 %%% Internal functions
