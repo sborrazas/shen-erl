@@ -89,19 +89,23 @@ fun_mfa(_) -> not_found.
 'if'(false, _TrueVal, FalseVal) -> FalseVal.
 
 %% simple-error
-'simple-error'(ErrorMsg) when is_list(ErrorMsg) -> ok.
+'simple-error'(ErrorMsg) when is_list(ErrorMsg) ->
+  throw({'simple-error', ErrorMsg}).
 
 %% error-to-string
-'error-to-string'(_Error) -> ok.
+'error-to-string'(Error) ->
+  throw({'error-to-string', Error}).
 
 %% intern
 intern(SymbolStr) when is_list(SymbolStr) -> list_to_atom(SymbolStr).
 
 %% set
-set(Name, _Val) when is_atom(Name) -> ok.
+set(Name, Val) when is_atom(Name) ->
+  throw({'set', Name, Val}).
 
 %% value
-value(Name) when is_atom(Name) -> ok.
+value(Name) when is_atom(Name) ->
+  throw({value, Name}).
 
 %% number?
 'number?'(Val) when is_number(Val) -> true;
@@ -117,8 +121,12 @@ pos(Str, Index) -> string:substr(Str, Index, 1).
 %% tlstr
 tlstr(Str) -> string:substr(Str, 1).
 
+%% str
+str(Val) -> throw({str, Val}).
+
 %% cn
-cn(_Val) -> ok.
+cn(Val) ->
+  throw({cn, Val}).
 
 %% string->n
 'string->n'([Char | _RestStr]) -> Char.
@@ -127,16 +135,20 @@ cn(_Val) -> ok.
 'n->string'(Char) -> [Char].
 
 %% absvector
-absvector(_Length) -> ok.
+absvector(Length) ->
+  throw({absvector, Length}).
 
 %% address->
-'address->'(_Vec, _Index, _Val) -> ok.
+'address->'(Vec, Index, Val) ->
+  throw({'address->', Vec, Index, Val}).
 
-%% address<-
-'address<-'(_Vec, _Index) -> ok.
+%% <-address
+'<-address'(Vec, Index) ->
+  throw({'<-address', Vec, Index}).
 
 %% absvector?
-'absvector?'(_Val) -> ok.
+'absvector?'(Val) ->
+  throw({'absvector?', Val}).
 
 %% cons?
 'cons?'([_H | _T]) -> true;
@@ -152,27 +164,31 @@ hd([H | _T]) -> H.
 tl([_H | T]) -> T.
 
 %% write-byte
-'write-byte'(_Num, _Stream) -> ok.
+'write-byte'(Num, Stream) ->
+  throw({'write-byte', Num, Stream}).
 
 %% read-byte
-'read-byte'(_Stream) -> ok.
+'read-byte'(Stream) ->
+  throw({'read-byte', Stream}).
 
 %% open
-open(_FilePath, in) -> ok;
-open(_FilePath, out) -> ok.
+open(FilePath, in) -> throw({open, FilePath, in});
+open(FilePath, out) -> throw({open, FilePath, out}).
 
 %% close
-close(_Stream) -> [].
+close(Stream) ->
+  throw({close, Stream}).
 
 %% =
-'='(_Val1, _Val2) -> true.
+'='(Val1, Val2) ->
+  throw({'=', Val1, Val2}).
 
 %% eval-kl
-'eval-kl'(_Kl) -> ok.
+'eval-kl'(Kl) -> throw({'eval-kl', Kl}).
 
 %% get-time
-'get-time'(unix) -> ok;
-'get-time'(run) -> ok.
+'get-time'(unix) -> throw({'get-time', unix});
+'get-time'(run) -> throw({'get-time', run}).
 
 %% type
 type(Val, _Hint) -> Val.
