@@ -174,11 +174,12 @@ compile_exp([Op | Args], Env) when is_atom(Op) -> % (a b c)
       %% Case 1.2: Function operator is a global function
       case shen_erl_kl_primitives:fun_mfa(Op) of
         {ok, {Mod, FunName, Arity}} ->
-          % 1.2.1: Function operator is a global predefined function
+          % 1.2.1: Function operator is a KL primitive
           compile_static_app(erl_syntax:module_qualifier(erl_syntax:atom(Mod), erl_syntax:atom(FunName)), Arity, CArgs, Env);
         not_found ->
-          % 1.2.2: Function operator is a global user-defined function
-          erl_syntax:application(erl_syntax:module_qualifier(erl_syntax:atom(Op), erl_syntax:atom(Op)), CArgs)
+          % 1.2.2: Function operator is a user-defined function
+          {ok, {Mod, FunName, Arity}} = shen_erl_kl_env:arity(Env, Op),
+          compile_static_app(erl_syntax:module_qualifier(erl_syntax:atom(Mod), erl_syntax:atom(FunName)), Arity, CArgs, Env)
       end
   end;
 
