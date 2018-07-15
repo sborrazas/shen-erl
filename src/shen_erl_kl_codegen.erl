@@ -139,9 +139,21 @@ compile_exp(['if', Exp, ExpTrue, ExpFalse], Env) ->
   CExp = compile_exp(Exp, Env),
   CExpTrue = compile_exp(ExpTrue, Env),
   CExpFalse = compile_exp(ExpFalse, Env),
-  TrueClause = erl_syntax:clause([erl_syntax:atom(true)], none, [CExpTrue]),
-  FalseClause = erl_syntax:clause([erl_syntax:atom(false)], none, [CExpFalse]),
+  TrueClause = erl_syntax:clause([?ERL_TRUE], none, [CExpTrue]),
+  FalseClause = erl_syntax:clause([?ERL_FALSE], none, [CExpFalse]),
   erl_syntax:case_expr(CExp, [TrueClause, FalseClause]);
+
+%% cond
+compile_exp(['cond', [Exp, ExpTrue] | Rest], Env) ->
+  CExp = compile_exp(Exp, Env),
+  CExpTrue = compile_exp(ExpTrue, Env),
+  CExpFalse = compile_exp(['cond' | Rest], Env), % TODO: Check all the cond structure beforehand
+  TrueClause = erl_syntax:clause([?ERL_TRUE], none, [CExpTrue]),
+  FalseClause = erl_syntax:clause([?ERL_FALSE], none, [CExpFalse]),
+  erl_syntax:case_expr(CExp, [TrueClause, FalseClause]);
+
+compile_exp(['cond'], _Env) ->
+  erl_syntax:integer(9999); % TODO
 
 %% Lazy values
 compile_exp([freeze, Body], Env) ->
