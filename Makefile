@@ -11,6 +11,7 @@ BINDIR = bin
 EBINDIR = ebin
 SRCDIR = src
 INCDIR = include
+KLSRCDIR = kl
 
 PREFIX ?= /usr/local
 DESTLIBDIR := $(PREFIX)/lib/lfe
@@ -23,10 +24,16 @@ BINS = $(CSRCS:.c=)
 ESRCS = $(notdir $(wildcard $(SRCDIR)/*.erl))
 EBINS = $(ESRCS:.erl=.beam)
 
+KL_SRCS = $(notdir $(wildcard $(KLSRCDIR)/*.kl))
+
 ERLCFLAGS = -W1 +debug_info
 ERLC = erlc
 
-EXE := shen-erl
+EXE ?= shen-erl
+
+.PHONY: all
+.DEFAULT: all
+all: $(EXE)
 
 ## Compile C files
 $(BINDIR)/%: $(CSRCDIR)/%.c
@@ -38,25 +45,42 @@ $(EBINDIR)/%.beam: $(SRCDIR)/%.erl
 	@$(INSTALL_DIR) $(EBINDIR)
 	$(ERLC) -I $(INCDIR) -o $(EBINDIR) $(ERLCFLAGS) $<
 
-all: $(EXE)
-
 ## Compile Erlang files using erlc
 .PHONY: erlc-compile
 erlc-compile: $(addprefix $(EBINDIR)/, $(EBINS)) $(addprefix $(BINDIR)/, $(BINS))
 
 .PHONY: clean
 clean:
-	rm -rf $(EBINDIR)/*.beam bin/* erl_crash.dump
+	rm -rf $(EBINDIR)/*.beam $(BINDIR)/* erl_crash.dump test/shen test/logs
 
 ## shen-erlang compile
 $(EXE): erlc-compile
 
 ## Lexer & parser
+.PHONY: lexer
 lexer:
 	erl -noshell -eval 'leex:file("src/shen_erl_kl_scan"), init:stop().'
 
+.PHONY: parser
 parser:
 	erl -noshell -eval 'yecc:file("src/shen_erl_kl_parse"), init:stop().'
+
+## Compile .kl files
+.PHONY: shen-kl
+shen-kl: $(EXE)
+	@$(INSTALL_DIR) $(EBINDIR)
+	SHEN_ERL_ROOTDIR=$(BASE_DIR) $(BINDIR)/$(EXE) --kl $(addprefix $(KLSRCDIR)/, $(KL_SRCS)) --output-dir $(EBINDIR)
+
+## Tests
+test/shen:
+	git clone https://github.com/Shen-Language/shen-sources test/shen-sources
+	mv test/shen-sources/tests test/shen
+	rm -rf test/shen-sources
+
+.PHONY: shen-tests
+shen-tests: shen-kl test/shen
+	SHEN_ERL_ROOTDIR=$(BASE_DIR) $(BINDIR)/$(EXE) --script scripts/run-shen-tests.shen
+
 
 ################################################################################
 ## DOCKER

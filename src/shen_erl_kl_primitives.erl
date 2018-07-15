@@ -16,12 +16,13 @@
          'string?'/1,
          'pos'/2,
          'tlstr'/1,
+         'str'/1,
          'cn'/1,
          'string->n'/1,
          'n->string'/1,
          'absvector'/1,
          'address->'/3,
-         'address<-'/2,
+         '<-address'/2,
          'absvector?'/1,
          'cons?'/1,
          'cons'/2,
@@ -61,12 +62,13 @@ fun_mfa('number?') -> {ok, {?MODULE, 'number?', 1}};
 fun_mfa('string?') -> {ok, {?MODULE, 'string?', 1}};
 fun_mfa('pos') -> {ok, {?MODULE, 'pos', 2}};
 fun_mfa('tlstr') -> {ok, {?MODULE, 'tlstr', 1}};
+fun_mfa('str') -> {ok, {?MODULE, 'str', 1}};
 fun_mfa('cn') -> {ok, {?MODULE, 'cn', 1}};
 fun_mfa('string->n') -> {ok, {?MODULE, 'string->n', 1}};
 fun_mfa('n->string') -> {ok, {?MODULE, 'n->string', 1}};
 fun_mfa('absvector') -> {ok, {?MODULE, 'absvector', 1}};
 fun_mfa('address->') -> {ok, {?MODULE, 'address->', 3}};
-fun_mfa('address<-') -> {ok, {?MODULE, 'address<-', 2}};
+fun_mfa('<-address') -> {ok, {?MODULE, '<-address', 2}};
 fun_mfa('absvector?') -> {ok, {?MODULE, 'absvector?', 1}};
 fun_mfa('cons?') -> {ok, {?MODULE, 'cons?', 1}};
 fun_mfa('cons') -> {ok, {?MODULE, 'cons', 2}};
