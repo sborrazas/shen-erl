@@ -11,7 +11,7 @@ expr_list -> expr : ['$1'].
 
 expr -> list : '$1'.
 expr -> number : '$1'.
-expr -> string : '$1'.
+expr -> string : {string, '$1'}.
 expr -> symbol : '$1'.
 
 list -> '(' ')' : [].
@@ -25,7 +25,7 @@ Erlang code.
 %% Types
 -type kl_tree() :: atom() |
                    number() |
-                   string() |
+                   {string, string()} |
                    [kl_tree()].
 
 -export_type([kl_tree/0]).
@@ -47,7 +47,10 @@ parse_tree(Tokens) ->
 
 % type(Token) -> element(1, Token).
 % line(Token) -> element(2, Token).
-value(Token) -> element(3, Token).
+value({string, Token}) ->
+  {string, element(3, Token)};
+value(Token) ->
+  element(3, Token).
 
 exp_tree([Exp | Rest]) when is_list(Exp) ->
   [[exp_tree(E) || E <- Exp] | exp_tree(Rest)];

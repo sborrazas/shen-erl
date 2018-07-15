@@ -115,6 +115,10 @@ compile_exp(Exp, _Env) when is_integer(Exp) -> % 1
 compile_exp(Exp, _Env) when is_float(Exp) -> % 2.2
   erl_syntax:float(Exp);
 
+%% Strings
+compile_exp({string, Exp}, _Env) ->
+  erl_syntax:string(Exp);
+
 %% lambda
 compile_exp([lambda, Var, Body], Env) when is_atom(Var) -> % (lambda X (+ X 2))
   {VarName, Env2} = shen_erl_kl_env:new_var(Env, Var),
