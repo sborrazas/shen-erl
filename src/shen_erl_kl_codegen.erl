@@ -208,7 +208,9 @@ compile_exp(['cond', [Exp, ExpTrue] | Rest], Env) ->
   erl_syntax:case_expr(CExp, [TrueClause, FalseClause]);
 
 compile_exp(['cond'], _Env) ->
-  erl_syntax:integer(9999); % TODO
+  erl_syntax:application(erl_syntax:atom(throw),
+                         [erl_syntax:tuple([erl_syntax:atom(kl_error),
+                                            erl_syntax:string("End of cond reached")])]);
 
 %% Lazy values
 compile_exp([freeze, Body], Env) ->
