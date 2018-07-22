@@ -148,11 +148,11 @@ compile_exp([], _Env) -> % ()
 compile_exp(['and', Exp1, Exp2], Env) -> % (and Exp1 Exp2)
   CExp1 = compile_exp(Exp1, Env),
   CExp2 = compile_exp(Exp2, Env),
-  erl_syntax:infix_expr(CExp1, erl_syntax:operator("and"), CExp2);
+  erl_syntax:infix_expr(CExp1, erl_syntax:operator("andalso"), CExp2);
 compile_exp(['or', Exp1, Exp2], Env) -> % (or Exp1 Exp2)
   CExp1 = compile_exp(Exp1, Env),
   CExp2 = compile_exp(Exp2, Env),
-  erl_syntax:infix_expr(CExp1, erl_syntax:operator("or"), CExp2);
+  erl_syntax:infix_expr(CExp1, erl_syntax:operator("orelse"), CExp2);
 compile_exp(['not', Exp], Env) -> % (not Exp)
   CExp = compile_exp(Exp, Env),
   erl_syntax:prefix_expr(erl_syntax:operator("not"), CExp);
