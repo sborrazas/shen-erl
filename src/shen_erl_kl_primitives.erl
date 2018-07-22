@@ -209,7 +209,9 @@ close(Stream) ->
   Val1 =:= Val2.
 
 %% eval-kl
-'eval-kl'(Kl) -> throw({'eval-kl', Kl}).
+'eval-kl'(KlCode) ->
+  KlCodeFlat = flatten_kl_code(KlCode),
+  shen_erl_kl_compiler:eval_kl(KlCodeFlat).
 
 %% get-time
 'get-time'(unix) ->
@@ -226,3 +228,7 @@ type(Val, _Hint) -> Val.
 %%% Internal functions
 %%%===================================================================
 
+flatten_kl_code({cons, Car, Cdr}) ->
+  [flatten_kl_code(Car) | flatten_kl_code(Cdr)];
+flatten_kl_code(Code) ->
+  Code.

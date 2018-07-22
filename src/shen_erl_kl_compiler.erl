@@ -6,8 +6,25 @@
 
 %% API
 -export([files_kl/2,
+         eval_kl/1,
          eval/1,
          load/1]).
+
+%% Macros
+-define(KL_MODS, ['kl_core',
+                  'kl_load',
+                  'kl_prolog',
+                  'kl_sequent',
+                  'kl_t-star',
+                  'kl_track',
+                  'kl_writer',
+                  'kl_declarations',
+                  'kl_macros',
+                  'kl_reader',
+                  'kl_sys',
+                  'kl_toplevel',
+                  'kl_types',
+                  'kl_yacc']).
 
 %% Types
 -type opt() :: {output_dir, string()}.
@@ -23,6 +40,22 @@ files_kl(Filenames, Opts) ->
   case parse_files(Filenames, []) of
     {ok, FilesAsts} ->
       compile_kl(FilesAsts, Opts);
+    {error, Reason} -> {error, Reason}
+  end.
+
+-spec eval_kl(term()) -> ok. % TODO Type parameter
+eval_kl(KlCode) ->
+
+  Mod = rand_modname(),
+  KlCode2 = [KlCode],
+
+  io:format(standard_error, "KL (mod = ~p): ~p~n", [Mod, KlCode2]),
+
+  shen_erl_kl_codegen:load_defuns(Mod, KlCode2),
+  case shen_erl_kl_codegen:compile(Mod, KlCode2) of
+    {ok, Bin} ->
+      code:load_binary(Mod, [], Bin),
+      Mod:kl_tle();
     {error, Reason} -> {error, Reason}
   end.
 
@@ -85,3 +118,11 @@ write(Mod, BeamCode, Opts) ->
     ok -> ok;
     {error, Reason} -> {error, Reason}
   end.
+
+rand_modname() ->
+  list_to_atom("_" ++ rand_modname(32, [])).
+
+rand_modname(0, Acc) ->
+  Acc;
+rand_modname(N, Acc) ->
+  rand_modname(N - 1, [rand:uniform(26) + 96 | Acc]).
