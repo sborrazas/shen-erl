@@ -17,7 +17,7 @@
          'pos'/2,
          'tlstr'/1,
          'str'/1,
-         'cn'/1,
+         'cn'/2,
          'string->n'/1,
          'n->string'/1,
          'absvector'/1,
@@ -63,7 +63,7 @@ fun_mfa('string?') -> {ok, {?MODULE, 'string?', 1}};
 fun_mfa('pos') -> {ok, {?MODULE, 'pos', 2}};
 fun_mfa('tlstr') -> {ok, {?MODULE, 'tlstr', 1}};
 fun_mfa('str') -> {ok, {?MODULE, 'str', 1}};
-fun_mfa('cn') -> {ok, {?MODULE, 'cn', 1}};
+fun_mfa('cn') -> {ok, {?MODULE, 'cn', 2}};
 fun_mfa('string->n') -> {ok, {?MODULE, 'string->n', 1}};
 fun_mfa('n->string') -> {ok, {?MODULE, 'n->string', 1}};
 fun_mfa('absvector') -> {ok, {?MODULE, 'absvector', 1}};
@@ -89,87 +89,112 @@ fun_mfa(_) -> not_found.
 'if'(false, _TrueVal, FalseVal) -> FalseVal.
 
 %% simple-error
-'simple-error'(ErrorMsg) when is_list(ErrorMsg) ->
-  throw({'simple-error', ErrorMsg}).
+'simple-error'(ErrorMsg) -> throw({kl_error, ErrorMsg}).
 
 %% error-to-string
 'error-to-string'(Error) ->
-  throw({'error-to-string', Error}).
+  {string, Error}.
 
 %% intern
-intern(SymbolStr) when is_list(SymbolStr) -> list_to_atom(SymbolStr).
+intern({string, SymbolStr}) -> list_to_atom(SymbolStr).
 
 %% set
 set(Name, Val) when is_atom(Name) ->
-  throw({'set', Name, Val}).
+  shen_erl_global_stores:set_val(Name, Val).
 
 %% value
-value(Name) when is_atom(Name) ->
-  throw({value, Name}).
+value(Key) when is_atom(Key) ->
+  case shen_erl_global_stores:get_val(Key) of
+    {ok, Val} -> Val;
+    not_found -> throw({kl_error, {string, io_lib:format("Value not found for key `~p`", [Key])}})
+  end.
 
 %% number?
 'number?'(Val) when is_number(Val) -> true;
 'number?'(_Val) -> false.
 
 %% string?
-'string?'(Val) when is_list(Val) -> true; % TODO: Determine string
+'string?'({string, _Str}) -> true;
 'string?'(_Val) -> false.
 
 %% pos
-pos(Str, Index) -> string:substr(Str, Index, 1).
+pos({string, Str}, Index) when Index =< length(Str) ->
+  {string, string:substr(Str, Index + 1, 1)};
+pos({string, _Str}, Index) ->
+  throw({kl_error, {string, io_lib:format("Index `~B` out of bounds.", [Index])}}).
 
 %% tlstr
-tlstr(Str) -> string:substr(Str, 1).
+tlstr({string, [_H | T]}) -> {string, T};
+tlstr({string, []}) -> throw({kl_error, {string, "Cannot call tlstr on an empty string."}}).
 
 %% str
-str(Val) -> throw({str, Val}).
+str(Val) when is_atom(Val) ->
+  {string, atom_to_list(Val)};
+str(Val) ->
+  {string, lists:flatten(io_lib:format("~p", [Val]))}.
 
 %% cn
-cn(Val) ->
-  throw({cn, Val}).
+cn({string, Str1}, {string, Str2}) -> {string, Str1 ++ Str2}.
 
 %% string->n
-'string->n'([Char | _RestStr]) -> Char.
+'string->n'({string, [Char | _RestStr]}) -> Char;
+'string->n'({string, []}) ->
+  throw({kl_error, {string, "Cannot call string->n on an empty string."}}).
 
 %% n->string
-'n->string'(Char) -> [Char].
+'n->string'(Char) -> {string, [Char]}.
 
 %% absvector
 absvector(Length) ->
-  throw({absvector, Length}).
+  {vector, shen_erl_global_stores:init_vector(Length)}.
 
 %% address->
-'address->'(Vec, Index, Val) ->
-  throw({'address->', Vec, Index, Val}).
+'address->'({vector, Vec}, Index, Val) ->
+  case shen_erl_global_stores:set_vector_val(Vec, Index, Val) of
+    ok -> {vector, Vec};
+    invalid_index -> throw({kl_error, {string, "Index out of bounds"}});
+    not_found -> throw({kl_error, {string, "Vector not initialized"}})
+  end.
 
 %% <-address
-'<-address'(Vec, Index) ->
-  throw({'<-address', Vec, Index}).
+'<-address'({vector, Vec}, Index) ->
+  case shen_erl_global_stores:get_vector_val(Vec, Index) of
+    {ok, Val} -> Val;
+    invalid_index -> throw({kl_error, {string, "Index out of bounds"}});
+    not_found -> throw({kl_error, {string, "Vector not initialized"}})
+  end.
 
 %% absvector?
-'absvector?'(Val) ->
-  throw({'absvector?', Val}).
+'absvector?'({vector, _Vec}) -> true;
+'absvector?'(_Val) -> false.
 
 %% cons?
-'cons?'([_H | _T]) -> true;
+'cons?'({cons, _H, _T}) -> true;
 'cons?'(_Val) -> false.
 
 %% cons
-cons(H, T) -> [H | T].
+cons(H, T) -> {cons, H, T}.
 
 %% hd
-hd([H | _T]) -> H.
+hd({cons, H, _T}) -> H;
+hd(_Val) ->
+  throw({kl_error, {string, "Not a cons"}}).
 
 %% tl
-tl([_H | T]) -> T.
+tl({cons, _H, T}) -> T;
+tl(_Val) ->
+  throw({kl_error, {string, "Not a cons"}}).
 
 %% write-byte
 'write-byte'(Num, Stream) ->
-  throw({'write-byte', Num, Stream}).
+  io:fwrite(Stream, "~c", [Num]).
 
 %% read-byte
 'read-byte'(Stream) ->
-  throw({'read-byte', Stream}).
+  case io:get_chars(Stream, [], 1) of
+    [Char] -> Char;
+    eof -> -1
+  end.
 
 %% open
 open(FilePath, in) -> throw({open, FilePath, in});
@@ -181,14 +206,18 @@ close(Stream) ->
 
 %% =
 '='(Val1, Val2) ->
-  throw({'=', Val1, Val2}).
+  Val1 =:= Val2.
 
 %% eval-kl
 'eval-kl'(Kl) -> throw({'eval-kl', Kl}).
 
 %% get-time
-'get-time'(unix) -> throw({'get-time', unix});
-'get-time'(run) -> throw({'get-time', run}).
+'get-time'(unix) ->
+  Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
+  calendar:datetime_to_gregorian_seconds(calendar:universal_time()) - Epoch;
+'get-time'(run) ->
+  Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}), % TODO
+  calendar:datetime_to_gregorian_seconds(calendar:universal_time()) - Epoch.
 
 %% type
 type(Val, _Hint) -> Val.
@@ -196,3 +225,4 @@ type(Val, _Hint) -> Val.
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
