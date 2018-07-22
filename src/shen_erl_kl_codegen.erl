@@ -27,7 +27,7 @@
 -spec load_defuns(module(), shen_erl_kl_parse:kl_tree()) -> ok.
 load_defuns(Mod, ToplevelDefs) ->
   [shen_erl_global_stores:set_mfa(Name, {Mod, Name, length(Args)}) ||
-    [defun, Name, Args, _Body] <- ToplevelDefs].
+    [defun, Name, Args, _Body] <- ToplevelDefs, is_atom(Name), is_list(Args)].
 
 -spec eval(shen_erl_kl_parse:kl_tree()) -> {ok, [{module(), binary()}]} |
                                            {error, binary()}.
@@ -49,7 +49,7 @@ compile(Mod, ToplevelDefs) ->
       ExportAttr = erl_syntax:attribute(erl_syntax:atom(export), [erl_syntax:list([TleSignature | Signatures])]),
       ExportForm = erl_syntax:revert(ExportAttr),
 
-      TleClause =  erl_syntax:clause([], [], Tles), % No args, no guards
+      TleClause =  erl_syntax:clause([], [], lists:reverse(Tles)), % No args, no guards
       TleFunction = erl_syntax:function(erl_syntax:atom(kl_tle), [TleClause]),
       TleForm = erl_syntax:revert(TleFunction),
 
@@ -172,7 +172,7 @@ compile_exp(Exp, _Env) when is_float(Exp) -> % 2.2
 
 %% Strings
 compile_exp({string, Exp}, _Env) ->
-  erl_syntax:string(Exp);
+  erl_syntax:tuple([erl_syntax:atom(string), erl_syntax:string(Exp)]);
 
 %% lambda
 compile_exp([lambda, Var, Body], Env) when is_atom(Var) -> % (lambda X (+ X 2))
