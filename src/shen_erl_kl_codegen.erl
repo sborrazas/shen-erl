@@ -220,7 +220,16 @@ compile_exp([freeze, Body], Env) ->
 
 %% Trap errors
 compile_exp(['trap-error', Body, Handler], Env) ->
-  erl_syntax:integer(9999); % TODO
+  {VarName, Env2} = shen_erl_kl_env:new_var(Env, newvar),
+  {ErrorVarName, Env3} = shen_erl_kl_env:new_var(Env2, newvar),
+  CBody = compile_exp(Body, Env3),
+  CHandlerFun = compile_exp(Handler, Env3),
+  CVar = erl_syntax:variable(VarName),
+  CErrorVar = erl_syntax:variable(ErrorVarName),
+  CClause = erl_syntax:clause([CVar], none, [CVar]),
+  CError = erl_syntax:tuple([erl_syntax:atom(kl_error), CErrorVar]),
+  CHandler = erl_syntax:clause([CError], none, [erl_syntax:application(CHandlerFun, [CErrorVar])]),
+  erl_syntax:try_expr([CBody], [CClause], [CHandler]);
 
 %% Function applications
 
