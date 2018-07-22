@@ -61,6 +61,8 @@ eval_kl(KlCode) ->
 
 -spec load(string()) -> ok | {error, binary()}.
 load(Filename) ->
+  [load_funs(Mod) || Mod <- ?KL_MODS],
+  [Mod:kl_tle() || Mod <- ?KL_MODS],
   kl_load:load(Filename).
 
 -spec eval(string()) -> term().
@@ -70,6 +72,11 @@ eval(ShenCode) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+load_funs(Mod) ->
+  [shen_erl_global_stores:set_mfa(FunName, {Mod, FunName, Arity}) ||
+    {FunName, Arity} <- Mod:module_info(exports),
+    FunName =/= kl_tle].
 
 compile_kl([{Mod, Ast} | Rest], Opts) ->
   io:format(standard_error, "COMPILING ~p~n", [Mod]),
