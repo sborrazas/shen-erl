@@ -100,7 +100,8 @@ intern({string, SymbolStr}) -> list_to_atom(SymbolStr).
 
 %% set
 set(Name, Val) when is_atom(Name) ->
-  shen_erl_global_stores:set_val(Name, Val).
+  shen_erl_global_stores:set_val(Name, Val),
+  Val.
 
 %% value
 value(Key) when is_atom(Key) ->
@@ -202,7 +203,8 @@ open(FilePath, out) -> throw({open, FilePath, out}).
 
 %% close
 close(Stream) ->
-  throw({close, Stream}).
+  file:close(Stream),
+  [].
 
 %% =
 '='(Val1, Val2) ->
