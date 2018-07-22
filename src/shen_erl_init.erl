@@ -16,6 +16,18 @@
 
 start() ->
   shen_erl_global_stores:init(),
+  shen_erl_kl_primitives:set('*stoutput*', standard_io),
+  shen_erl_kl_primitives:set('*stinput*', standard_io),
+  {ok, Cwd} = file:get_cwd(),
+  shen_erl_kl_primitives:set('*home-directory*', {string, Cwd}),
+  shen_erl_kl_primitives:set('*language*', {string, "Erlang"}),
+  shen_erl_kl_primitives:set('*implementation*', {string, "Erlang OTP " ++ erlang:system_info(otp_release)}),
+  shen_erl_kl_primitives:set('*os*', {string, "BEAM " ++ erlang:system_info(otp_release)}),
+  case proplists:lookup(shen_erl, application:which_applications()) of
+    {shen_erl, _Desc, Version} -> shen_erl_kl_primitives:set('*release*', {string, Version});
+    none -> shen_erl_kl_primitives:set('*port*', {string, "Undefined"})
+  end,
+  shen_erl_kl_primitives:set('*porters*', {string, "Sebastian Borrazas"}),
   case init:get_plain_arguments() of
     [] ->
       io:format(standard_error, "shen-erl: No arguments provided.~n", []),
