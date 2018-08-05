@@ -10,6 +10,7 @@ Rules.
 %% Numbers
 {S}{D}+       : {token, {number, TokenLine, list_to_integer(TokenChars)}}.
 {S}{D}+\.{D}+ : {token, {number, TokenLine, list_to_float(TokenChars)}}.
+\.{D}+        : {token, {number, TokenLine, list_to_float([$0 | TokenChars])}}.
 
 %% String
 \"[^\"]*\"    : {token, {string, TokenLine, string:substr(TokenChars, 2, TokenLen - 2)}}.
