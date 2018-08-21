@@ -137,8 +137,22 @@ tlstr({string, []}) -> 'simple-error'({string, "Cannot call tlstr on an empty st
 %% str
 str(Val) when is_atom(Val) ->
   {string, atom_to_list(Val)};
-str(Val) ->
-  {string, lists:flatten(io_lib:format("~p", [Val]))}.
+str({string, Str}) ->
+  {string, lists:flatten(io_lib:format("~p", [Str]))};
+str(Val) when is_function(Val) ->
+  {string, lists:flatten(io_lib:format("FUN: ~p", [Val]))};
+str(Val) when is_number(Val) ->
+  {string, lists:flatten(io_lib:format("~p", [Val]))};
+str(Val) when is_pid(Val) ->
+  {string, lists:flatten(io_lib:format("PID: ~p", [Val]))};
+str({cons, Car, Cdr}) ->
+  {string, StrCar} = str(Car),
+  {string, StrCdr} = str(Cdr),
+  {string, lists:flatten(io_lib:format("(~s, ~s)", [StrCar, StrCdr]))};
+str({vector, Vec}) ->
+  {string, lists:flatten(io_lib:format("VECTOR: ~p", [Vec]))};
+str([]) ->
+  {string, "[]"}.
 
 %% cn
 cn({string, Str1}, {string, Str2}) -> {string, Str1 ++ Str2}.
