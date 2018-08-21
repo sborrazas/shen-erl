@@ -76,11 +76,6 @@ compile_toplevel([[defun, Name, Args, Body] | Rest],
 
   Signature = erl_syntax:arity_qualifier(erl_syntax:atom(Name), erl_syntax:integer(length(Args))),
 
-  %% case Name of
-  %%   'shen.<define>' -> io:format(standard_error, "PP: ~p~n", [erl_prettypr:format(FunForm)]);
-  %%   _ -> ok
-  %% end,
-
   compile_toplevel(Rest, Code#code{signatures = [Signature | Signatures],
                                    forms = [FunForm | Forms]});
 compile_toplevel([Exp | Rest], Code = #code{tles = Tles}) ->
@@ -118,7 +113,6 @@ eval_toplevel([[defun, Name, Args, Body] | Rest],
   end;
 eval_toplevel([Exp | Rest], Modules) ->
   Name = list_to_atom("tle_" ++ integer_to_list(length(Modules))), % Top level expression function name
-  io:format(standard_error, "COMPILING TLE (exp): ~p~n", [Name]),
   Env = shen_erl_kl_env:new(),
 
   BodyCode = compile_exp(Exp, Env),
@@ -243,15 +237,14 @@ compile_exp([Op | Args], Env) when is_atom(Op) -> % (a b c)
     not_found ->
       %% Case 1.2: Function operator is a global function
       case shen_erl_kl_primitives:fun_mfa(Op) of
-        {ok, {Mod, FunName, Arity}} ->
+        {ok, {Mod, Fun, Arity}} ->
           % 1.2.1: Function operator is a KL primitive
-          compile_static_app(erl_syntax:module_qualifier(erl_syntax:atom(Mod), erl_syntax:atom(FunName)), Arity, CArgs, Env);
+          compile_static_app(erl_syntax:module_qualifier(erl_syntax:atom(Mod), erl_syntax:atom(Fun)), Arity, CArgs, Env);
         not_found ->
           % 1.2.2: Function operator is a user-defined function
           case shen_erl_global_stores:get_mfa(Op) of
             {ok, {Mod, Fun, Arity}} ->
-              CMod = erl_syntax:module_qualifier(erl_syntax:atom(Mod), erl_syntax:atom(Fun)),
-              compile_static_app(CMod, Arity, CArgs, Env);
+              compile_static_app(erl_syntax:module_qualifier(erl_syntax:atom(Mod), erl_syntax:atom(Fun)), Arity, CArgs, Env);
             not_found ->
               throw({invalid_fun, Op})
           end
