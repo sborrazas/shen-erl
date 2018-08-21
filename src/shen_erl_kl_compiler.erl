@@ -12,6 +12,7 @@
 
 %% Macros
 -define(KL_MODS, ['kl_core',
+                  'kl_dict',
                   'kl_load',
                   'kl_prolog',
                   'kl_sequent',
@@ -54,8 +55,14 @@ eval_kl(KlCode) ->
   shen_erl_kl_codegen:load_defuns(Mod, KlCode2),
   case shen_erl_kl_codegen:compile(Mod, KlCode2) of
     {ok, Bin} ->
-      code:load_binary(Mod, [], Bin),
-      Mod:kl_tle();
+      case KlCode of
+        [defun, Name | Rest] ->
+          code:load_binary(Mod, [], Bin),
+          Name;
+        _ ->
+          code:load_binary(Mod, [], Bin),
+          Mod:kl_tle()
+      end;
     {error, Reason} -> {error, Reason}
   end.
 
@@ -63,11 +70,15 @@ eval_kl(KlCode) ->
 load(Filename) ->
   [load_funs(Mod) || Mod <- ?KL_MODS],
   [Mod:kl_tle() || Mod <- ?KL_MODS],
-  kl_load:load(Filename).
+  kl_load:load({string, Filename}),
+  ok.
 
 -spec eval(string()) -> term().
 eval(ShenCode) ->
-  kl_sys:'shen.eval'(ShenCode).
+  [load_funs(Mod) || Mod <- ?KL_MODS],
+  [Mod:kl_tle() || Mod <- ?KL_MODS],
+  %% kl_sys:eval(ShenCode).
+  kl_toplevel:'shen.shen'().
 
 %%%===================================================================
 %%% Internal functions
@@ -76,7 +87,7 @@ eval(ShenCode) ->
 load_funs(Mod) ->
   [shen_erl_global_stores:set_mfa(FunName, {Mod, FunName, Arity}) ||
     {FunName, Arity} <- Mod:module_info(exports),
-    FunName =/= kl_tle].
+    FunName =/= kl_tle, FunName =/= module_info].
 
 compile_kl([{Mod, Ast} | Rest], Opts) ->
   io:format(standard_error, "COMPILING ~p~n", [Mod]),
@@ -94,7 +105,6 @@ compile_kl([], _Opts) ->
 parse_files([Filename | Rest], Acc) ->
   case parse_kl_file(Filename) of
     {ok, Ast} ->
-      io:format(standard_error, "FILENAME: ~p~n", [Filename]),
       Mod = list_to_atom("kl_" ++ filename:basename(Filename, ".kl")),
       shen_erl_kl_codegen:load_defuns(Mod, Ast),
       parse_files(Rest, [{Mod, Ast} | Acc]);
