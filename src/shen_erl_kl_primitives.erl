@@ -213,8 +213,17 @@ tl(_Val) -> 'simple-error'({string, "Not a cons"}).
   end.
 
 %% open
-open(FilePath, in) -> throw({open, FilePath, in});
-open(FilePath, out) -> throw({open, FilePath, out}).
+open({string, FilePath}, in) ->
+  {string, HomePath} = value('*home-directory*'),
+  FileAbsPath = filename:absname(FilePath, HomePath),
+  io:format(standard_error, "OPENING: ~p~n", [FileAbsPath]),
+  {ok, File} = file:open(FileAbsPath, [read]),
+  File;
+open({string, FilePath}, out) ->
+  {string, HomePath} = value('*home-directory*'),
+  FileAbsPath = filename:absname(FilePath, HomePath),
+  {ok, File} = file:open(FileAbsPath, [write]),
+  File.
 
 %% close
 close(Stream) ->
