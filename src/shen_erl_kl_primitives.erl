@@ -95,7 +95,7 @@ fun_mfa(_) -> not_found.
 'if'(false, _TrueVal, FalseVal) -> FalseVal.
 
 %% simple-error
-'simple-error'(ErrorMsg) -> throw({kl_error, ErrorMsg}).
+'simple-error'({string, ErrorMsg}) -> throw({kl_error, ErrorMsg}).
 
 %% error-to-string
 'error-to-string'(Error) ->
@@ -113,7 +113,7 @@ set(Name, Val) when is_atom(Name) ->
 value(Key) when is_atom(Key) ->
   case shen_erl_global_stores:get_val(Key) of
     {ok, Val} -> Val;
-    not_found -> throw({kl_error, {string, io_lib:format("Value not found for key `~p`", [Key])}})
+    not_found -> 'simple-error'({string, io_lib:format("Value not found for key `~p`", [Key])})
   end.
 
 %% number?
@@ -128,11 +128,11 @@ value(Key) when is_atom(Key) ->
 pos({string, Str}, Index) when Index =< length(Str) ->
   {string, string:substr(Str, Index + 1, 1)};
 pos({string, _Str}, Index) ->
-  throw({kl_error, {string, io_lib:format("Index `~B` out of bounds.", [Index])}}).
+  'simple-error'({string, io_lib:format("Index `~B` out of bounds.", [Index])}).
 
 %% tlstr
 tlstr({string, [_H | T]}) -> {string, T};
-tlstr({string, []}) -> throw({kl_error, {string, "Cannot call tlstr on an empty string."}}).
+tlstr({string, []}) -> 'simple-error'({string, "Cannot call tlstr on an empty string."}).
 
 %% str
 str(Val) when is_atom(Val) ->
@@ -146,7 +146,7 @@ cn({string, Str1}, {string, Str2}) -> {string, Str1 ++ Str2}.
 %% string->n
 'string->n'({string, [Char | _RestStr]}) -> Char;
 'string->n'({string, []}) ->
-  throw({kl_error, {string, "Cannot call string->n on an empty string."}}).
+  'simple-error'({string, "Cannot call string->n on an empty string."}).
 
 %% n->string
 'n->string'(Char) -> {string, [Char]}.
@@ -181,13 +181,11 @@ cons(H, T) -> {cons, H, T}.
 
 %% hd
 hd({cons, H, _T}) -> H;
-hd(_Val) ->
-  throw({kl_error, {string, "Not a cons"}}).
+hd(_Val) -> 'simple-error'({string, "Not a cons"}).
 
 %% tl
 tl({cons, _H, T}) -> T;
-tl(_Val) ->
-  throw({kl_error, {string, "Not a cons"}}).
+tl(_Val) -> 'simple-error'({string, "Not a cons"}).
 
 %% write-byte
 'write-byte'(Num, Stream) ->
