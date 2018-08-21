@@ -53,6 +53,9 @@ int main(int argc, char **argv)
   PUSH("-s");
   PUSH("shen_erl_init");
 
+  PUSH("+P");
+  PUSH("524288");
+
   PUSH("-extra"); /* Program arguments */
 
   /* Check if we are 'eval'ing and add -eval flag */

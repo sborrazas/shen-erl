@@ -147,22 +147,19 @@ cn({string, Str1}, {string, Str2}) -> {string, Str1 ++ Str2}.
 
 %% absvector
 absvector(Length) ->
-  {vector, shen_erl_global_stores:init_vector(Length)}.
+  {ok, Vec} = shen_erl_kl_vector:new(Length),
+  {vector, Vec}.
 
 %% address->
 'address->'({vector, Vec}, Index, Val) ->
-  case shen_erl_global_stores:set_vector_val(Vec, Index, Val) of
-    ok -> {vector, Vec};
-    invalid_index -> throw({kl_error, {string, "Index out of bounds"}});
-    not_found -> throw({kl_error, {string, "Vector not initialized"}})
-  end.
+  shen_erl_kl_vector:set(Vec, Index, Val),
+  {vector, Vec}.
 
 %% <-address
 '<-address'({vector, Vec}, Index) ->
-  case shen_erl_global_stores:get_vector_val(Vec, Index) of
+  case shen_erl_kl_vector:get(Vec, Index) of
     {ok, Val} -> Val;
-    invalid_index -> throw({kl_error, {string, "Index out of bounds"}});
-    not_found -> throw({kl_error, {string, "Vector not initialized"}})
+    out_of_bounds -> 'simple-error'({string, "Index out of bounds"})
   end.
 
 %% absvector?
