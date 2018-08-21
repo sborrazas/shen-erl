@@ -37,6 +37,9 @@
          'get-time'/1,
          'type'/2]).
 
+-export(['symbol?'/1]).
+-export([dynamic_app/1]).
+
 %%%===================================================================
 %%% API
 %%%===================================================================
@@ -82,6 +85,9 @@ fun_mfa('=') -> {ok, {?MODULE, '=', 2}};
 fun_mfa('eval-kl') -> {ok, {?MODULE, 'eval-kl', 1}};
 fun_mfa('get-time') -> {ok, {?MODULE, 'get-time', 1}};
 fun_mfa('type') -> {ok, {?MODULE, 'type', 2}};
+
+fun_mfa('symbol?') -> {ok, {?MODULE, 'symbol?', 1}};
+
 fun_mfa(_) -> not_found.
 
 %% if
@@ -223,11 +229,37 @@ close(Stream) ->
 %% type
 type(Val, _Hint) -> Val.
 
+'symbol?'(Val) when is_atom(Val) -> true;
+'symbol?'(_Val) -> false.
+
+dynamic_app(Op) when is_atom(Op) ->
+  case shen_erl_global_stores:get_mfa(Op) of
+    {ok, {Mod, Fun, 0}} ->
+      fun () -> Mod:Fun() end;
+    {ok, {Mod, Fun, Arity}} ->
+      nest_calls(Mod, Fun, Arity, []);
+    not_found ->
+      %% io:format(standard_error, "TAB TO LIST: ~p~n", [ets:tab2list('_kl_funs_store')]),
+      %% io:format(standard_error, "ARITY OF ~p: ~p~n", [Op, kl_declarations:arity(Op)]),
+      %% Op
+      %% 'simple-error'({string, "Not a function: " ++ atom_to_list(Op)})
+      throw({erriz, "Not a function: " ++ atom_to_list(Op)})
+  end.
+
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
 
 flatten_kl_code({cons, Car, Cdr}) ->
-  [flatten_kl_code(Car) | flatten_kl_code(Cdr)];
+  case flatten_kl_code(Cdr) of
+    FlattenedCdr when is_list(FlattenedCdr) -> [flatten_kl_code(Car) | FlattenedCdr]
+%% ;
+%%     FlattenedCdr -> {cons, flatten_kl_code(Car), FlattenedCdr}
+  end;
 flatten_kl_code(Code) ->
   Code.
+
+nest_calls(Mod, Fun, 0, Args) ->
+  erlang:apply(Mod, Fun, lists:reverse(Args));
+nest_calls(Mod, Fun, Arity, Args) ->
+  fun (Arg) -> nest_calls(Mod, Fun, Arity - 1, [Arg | Args]) end.
