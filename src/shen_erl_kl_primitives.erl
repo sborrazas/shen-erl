@@ -5,7 +5,16 @@
 -module(shen_erl_kl_primitives).
 
 %% API
--export([fun_mfa/1,
+-export(['+'/2,
+         '-'/2,
+         '*'/2,
+         '/'/2,
+         'and'/2,
+         'or'/2,
+         '>'/2,
+         '<'/2,
+         '>='/2,
+         '<='/2,
          'if'/3,
          'simple-error'/1,
          'error-to-string'/1,
@@ -44,51 +53,35 @@
 %%% API
 %%%===================================================================
 
--spec fun_mfa(atom()) -> {ok, mfa()} | not_found.
-fun_mfa('+') -> {ok, {erlang, '+', 2}};
-fun_mfa('-') -> {ok, {erlang, '-', 2}};
-fun_mfa('*') -> {ok, {erlang, '*', 2}};
-fun_mfa('/') -> {ok, {erlang, '/', 2}};
-fun_mfa('and') -> {ok, {erlang, 'and', 2}};
-fun_mfa('or') -> {ok, {erlang, 'or', 2}};
-fun_mfa('>') -> {ok, {erlang, '>', 2}};
-fun_mfa('<') -> {ok, {erlang, '<', 2}};
-fun_mfa('>=') -> {ok, {erlang, '>=', 2}};
-fun_mfa('<=') -> {ok, {erlang, '<=', 2}};
-fun_mfa('if') -> {ok, {?MODULE, 'if', 3}};
-fun_mfa('simple-error') -> {ok, {?MODULE, 'simple-error', 1}};
-fun_mfa('error-to-string') -> {ok, {?MODULE, 'error-to-string', 1}};
-fun_mfa('intern') -> {ok, {?MODULE, 'intern', 1}};
-fun_mfa('set') -> {ok, {?MODULE, 'set', 2}};
-fun_mfa('value') -> {ok, {?MODULE, 'value', 1}};
-fun_mfa('number?') -> {ok, {?MODULE, 'number?', 1}};
-fun_mfa('string?') -> {ok, {?MODULE, 'string?', 1}};
-fun_mfa('pos') -> {ok, {?MODULE, 'pos', 2}};
-fun_mfa('tlstr') -> {ok, {?MODULE, 'tlstr', 1}};
-fun_mfa('str') -> {ok, {?MODULE, 'str', 1}};
-fun_mfa('cn') -> {ok, {?MODULE, 'cn', 2}};
-fun_mfa('string->n') -> {ok, {?MODULE, 'string->n', 1}};
-fun_mfa('n->string') -> {ok, {?MODULE, 'n->string', 1}};
-fun_mfa('absvector') -> {ok, {?MODULE, 'absvector', 1}};
-fun_mfa('address->') -> {ok, {?MODULE, 'address->', 3}};
-fun_mfa('<-address') -> {ok, {?MODULE, '<-address', 2}};
-fun_mfa('absvector?') -> {ok, {?MODULE, 'absvector?', 1}};
-fun_mfa('cons?') -> {ok, {?MODULE, 'cons?', 1}};
-fun_mfa('cons') -> {ok, {?MODULE, 'cons', 2}};
-fun_mfa('hd') -> {ok, {?MODULE, 'hd', 1}};
-fun_mfa('tl') -> {ok, {?MODULE, 'tl', 1}};
-fun_mfa('write-byte') -> {ok, {?MODULE, 'write-byte', 2}};
-fun_mfa('read-byte') -> {ok, {?MODULE, 'read-byte', 1}};
-fun_mfa('open') -> {ok, {?MODULE, 'open', 2}};
-fun_mfa('close') -> {ok, {?MODULE, 'close', 1}};
-fun_mfa('=') -> {ok, {?MODULE, '=', 2}};
-fun_mfa('eval-kl') -> {ok, {?MODULE, 'eval-kl', 1}};
-fun_mfa('get-time') -> {ok, {?MODULE, 'get-time', 1}};
-fun_mfa('type') -> {ok, {?MODULE, 'type', 2}};
+%% +
+'+'(A, B) -> A + B.
 
-fun_mfa('symbol?') -> {ok, {?MODULE, 'symbol?', 1}};
+%% -
+'-'(A, B) -> A - B.
 
-fun_mfa(_) -> not_found.
+%% *
+'*'(A, B) -> A * B.
+
+%% /
+'/'(A, B) -> A / B.
+
+%% and
+'and'(A, B) -> A and B.
+
+%% or
+'or'(A, B) -> A or B.
+
+%% >
+'>'(A, B) -> A > B.
+
+%% <
+'<'(A, B) -> A < B.
+
+%% >=
+'>='(A, B) -> A + B.
+
+%% <=
+'<='(A, B) -> A + B.
 
 %% if
 'if'(true, TrueVal, _FalseVal) -> TrueVal;

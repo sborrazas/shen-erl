@@ -39,55 +39,46 @@
 -spec files_kl([string()], [opt()]) -> ok | {error, binary()}.
 files_kl(Filenames, Opts) ->
   case parse_files(Filenames, []) of
-    {ok, FilesAsts} ->
-      compile_kl(FilesAsts, Opts);
+    {ok, FilesAsts} -> compile_kl(FilesAsts, Opts);
     {error, Reason} -> {error, Reason}
   end.
 
 -spec eval_kl(term()) -> ok. % TODO Type parameter
 eval_kl(KlCode) ->
-
-  Mod = rand_modname(),
-  KlCode2 = [KlCode],
-
-  io:format(standard_error, "KL (mod = ~p): ~p~n", [Mod, KlCode2]),
-
-  shen_erl_kl_codegen:load_defuns(Mod, KlCode2),
-  case shen_erl_kl_codegen:compile(Mod, KlCode2) of
-    {ok, Bin} ->
-      case KlCode of
-        [defun, Name | Rest] ->
-          code:load_binary(Mod, [], Bin),
-          Name;
-        _ ->
-          code:load_binary(Mod, [], Bin),
-          Mod:kl_tle()
-      end;
+  case shen_erl_kl_codegen:compile(KlCode) of
+    {ok, Mod, Bin} ->
+      code:load_binary(Mod, [], Bin),
+      {ok, Mod:kl_tle()};
     {error, Reason} -> {error, Reason}
   end.
 
 -spec load(string()) -> ok | {error, binary()}.
 load(Filename) ->
-  [load_funs(Mod) || Mod <- ?KL_MODS],
-  [Mod:kl_tle() || Mod <- ?KL_MODS],
+  load_funs(),
   kl_load:load({string, Filename}),
   ok.
 
 -spec eval(string()) -> term().
 eval(ShenCode) ->
-  [load_funs(Mod) || Mod <- ?KL_MODS],
-  [Mod:kl_tle() || Mod <- ?KL_MODS],
-  %% kl_sys:eval(ShenCode).
+  load_funs(),
+  kl_sys:eval(ShenCode).
+
+-spec start_repl() -> ok.
+start_repl() ->
+  load_funs(),
   kl_toplevel:'shen.shen'().
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
 
-load_funs(Mod) ->
-  [shen_erl_global_stores:set_mfa(FunName, {Mod, FunName, Arity}) ||
+load_funs() ->
+  [[begin
+      shen_erl_global_stores:set_mfa(FunName, {Mod, FunName, Arity}),
+      Mod:kl_tle()
+    end ||
     {FunName, Arity} <- Mod:module_info(exports),
-    FunName =/= kl_tle, FunName =/= module_info].
+    FunName =/= kl_tle, FunName =/= module_info] || Mod <- ?KL_MODS].
 
 compile_kl([{Mod, Ast} | Rest], Opts) ->
   io:format(standard_error, "COMPILING ~p~n", [Mod]),
@@ -135,6 +126,9 @@ write(Mod, BeamCode, Opts) ->
     ok -> ok;
     {error, Reason} -> {error, Reason}
   end.
+
+modname(Name) ->
+  Name.
 
 rand_modname() ->
   list_to_atom("_" ++ rand_modname(32, [])).
