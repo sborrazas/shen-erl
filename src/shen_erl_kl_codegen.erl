@@ -127,17 +127,17 @@ compile_exp({string, Exp}, _Env) ->
 
 %% lambda
 compile_exp([lambda, Var, Body], Env) when is_atom(Var) -> % (lambda X (+ X 2))
-  {VarName, Env2} = shen_erl_kl_env:new_var(Env, Var),
+  {EVar, Env2} = shen_erl_kl_env:store_var(Env, Var),
   CBody = compile_exp(Body, Env2),
-  Clause = erl_syntax:clause([erl_syntax:variable(VarName)], [], [CBody]),
+  Clause = erl_syntax:clause([erl_syntax:variable(EVar)], [], [CBody]),
   erl_syntax:fun_expr([Clause]);
 
 %% let
 compile_exp(['let', Var, ExpValue, Body], Env) when is_atom(Var) -> % (let X (+ 2 2) (+ X 3))
-  {VarName, Env2} = shen_erl_kl_env:new_var(Env, Var),
   CExpValue = compile_exp(ExpValue, Env),
+  {EVar, Env2} = shen_erl_kl_env:store_var(Env, Var),
   CBody = compile_exp(Body, Env2),
-  Clause = erl_syntax:clause([erl_syntax:variable(VarName)], none, [CBody]),
+  Clause = erl_syntax:clause([erl_syntax:variable(EVar)], none, [CBody]),
   erl_syntax:case_expr(CExpValue, [Clause]);
 
 %% if
@@ -221,7 +221,7 @@ compile_dynamic_app(COp, [CArg | RestCArgs]) -> % Multiple argument application
 compile_static_app(COp, Arity, CArgs, _Env) when Arity =:= length(CArgs) ->
   erl_syntax:application(COp, CArgs);
 compile_static_app(COp, Arity, CArgs, Env) when Arity > length(CArgs) ->
-  {VarName, Env2} = shen_erl_kl_env:new_var(Env, newvar),
+  {VarName, Env2} = shen_erl_kl_env:new_var(Env),
   CBody = compile_static_app(COp, Arity, CArgs ++ [erl_syntax:variable(VarName)], Env2),
   Clause = erl_syntax:clause([erl_syntax:variable(VarName)], [], [CBody]),
   erl_syntax:fun_expr([Clause]);
@@ -234,9 +234,14 @@ fun_vars(Args, Env) ->
   {Args2, Env2} = lists:foldl(fun fun_var/2, {[], Env}, Args),
   {lists:reverse(Args2), Env2}.
 
-fun_var(Arg, {Acc, Env}) when is_atom(Arg) ->
-  {VarName, Env2} = shen_erl_kl_env:new_var(Env, Arg),
-  {[erl_syntax:variable(VarName) | Acc], Env2}.
+fun_var(Var, {Acc, Env}) when is_atom(Var) ->
+  {EVar, Env2} = shen_erl_kl_env:store_var(Env, Var),
+  {[erl_syntax:variable(EVar) | Acc], Env2}.
 
-sanitize(Name) ->
-  list_to_atom("kl_" ++ re:replace(atom_to_list(Name), "[^\\w.-]", "__", [global, {return, list}])).
+modname(Name) ->
+  list_to_atom("_kl_" ++ atom_to_list(Name)).
+
+rand_modname(0, Acc) ->
+  list_to_atom("_kl_" ++ Acc);
+rand_modname(N, Acc) ->
+  rand_modname(N - 1, [rand:uniform(26) + 96 | Acc]).

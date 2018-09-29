@@ -7,12 +7,11 @@
 %% API
 -export([new/0,
          fetch/2,
-         new_var/2]).
+         store_var/2,
+         new_var/1]).
 
 %% Types
--record(env, {vars :: orddict:orddict(atom(), atom()),
-              funs :: #{},
-              var_count :: non_neg_integer()}).
+-record(env, {vars :: orddict:orddict(atom(), atom())}).
 
 -opaque env() :: #env{}.
 
@@ -24,7 +23,7 @@
 
 -spec new() -> env().
 new() ->
-  #env{vars = orddict:new(), var_count = 1}.
+  #env{vars = orddict:new()}.
 
 -spec fetch(env(), atom()) -> {ok, atom()} | not_found.
 fetch(#env{vars = Vars}, VarKey) ->
@@ -33,11 +32,16 @@ fetch(#env{vars = Vars}, VarKey) ->
     error -> not_found
   end.
 
--spec new_var(env(), atom()) -> {atom(), env()}.
-new_var(Env = #env{vars = Vars, var_count = Count}, VarKey) ->
-  Value = "V" ++ integer_to_list(Count),
-  Vars2 = orddict:store(VarKey, Value, Vars),
-  {Value, Env#env{vars = Vars2, var_count = Count + 1}}.
+-spec store_var(env(), atom()) -> {atom(), env()}.
+store_var(Env = #env{vars = Vars}, Var) ->
+  Value = list_to_atom("V" ++ integer_to_list(shen_erl_global_stores:get_varname())),
+  {Value, Env#env{vars = orddict:store(Var, Value, Vars)}}.
+
+-spec new_var(env()) -> {atom(), env()}.
+new_var(Env = #env{vars = Vars}) ->
+  Value = list_to_atom("V" ++ integer_to_list(shen_erl_global_stores:get_varname())),
+  Vars2 = orddict:store(Value, Value, Vars),
+  {Value, Env#env{vars = Vars2}}.
 
 %%%===================================================================
 %%% Internal functions
