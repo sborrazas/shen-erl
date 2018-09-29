@@ -5,7 +5,8 @@
 -module(shen_erl_kl_compiler).
 
 %% API
--export([files_kl/2,
+-export([start_repl/0,
+         files_kl/2,
          eval_kl/1,
          eval/1,
          load/1]).
@@ -39,60 +40,44 @@
 -spec files_kl([string()], [opt()]) -> ok | {error, binary()}.
 files_kl(Filenames, Opts) ->
   case parse_files(Filenames, []) of
-    {ok, FilesAsts} ->
-      compile_kl(FilesAsts, Opts);
+    {ok, FilesAsts} -> compile_kl(FilesAsts, Opts);
     {error, Reason} -> {error, Reason}
   end.
 
 -spec eval_kl(term()) -> ok. % TODO Type parameter
 eval_kl(KlCode) ->
+  shen_erl_kl_codegen:eval(KlCode).
 
-  Mod = rand_modname(),
-  KlCode2 = [KlCode],
-
-  io:format(standard_error, "KL (mod = ~p): ~p~n", [Mod, KlCode2]),
-
-  shen_erl_kl_codegen:load_defuns(Mod, KlCode2),
-  case shen_erl_kl_codegen:compile(Mod, KlCode2) of
-    {ok, Bin} ->
-      case KlCode of
-        [defun, Name | Rest] ->
-          code:load_binary(Mod, [], Bin),
-          Name;
-        _ ->
-          code:load_binary(Mod, [], Bin),
-          Mod:kl_tle()
-      end;
-    {error, Reason} -> {error, Reason}
-  end.
-
--spec load(string()) -> ok | {error, binary()}.
+-spec load(string()) -> ok.
 load(Filename) ->
-  [load_funs(Mod) || Mod <- ?KL_MODS],
-  [Mod:kl_tle() || Mod <- ?KL_MODS],
+  load_funs(),
   kl_load:load({string, Filename}),
   ok.
 
 -spec eval(string()) -> term().
 eval(ShenCode) ->
-  [load_funs(Mod) || Mod <- ?KL_MODS],
-  [Mod:kl_tle() || Mod <- ?KL_MODS],
-  %% kl_sys:eval(ShenCode).
+  load_funs(),
+  kl_sys:eval(ShenCode).
+
+-spec start_repl() -> ok.
+start_repl() ->
+  load_funs(),
   kl_toplevel:'shen.shen'().
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
 
-load_funs(Mod) ->
-  [shen_erl_global_stores:set_mfa(FunName, {Mod, FunName, Arity}) ||
-    {FunName, Arity} <- Mod:module_info(exports),
-    FunName =/= kl_tle, FunName =/= module_info].
+load_funs() ->
+  [[shen_erl_global_stores:set_mfa(FunName, {Mod, FunName, Arity}) ||
+     {FunName, Arity} <- Mod:module_info(exports),
+     FunName =/= kl_tle, FunName =/= module_info] || Mod <- ?KL_MODS],
+  [Mod:kl_tle() || Mod <- ?KL_MODS].
 
 compile_kl([{Mod, Ast} | Rest], Opts) ->
   io:format(standard_error, "COMPILING ~p~n", [Mod]),
-  case shen_erl_kl_codegen:compile(Mod, Ast) of
-    {ok, Bin} ->
+  case shen_erl_kl_codegen:compile(Mod, Ast, ok) of
+    {ok, Mod, Bin} ->
       case write(Mod, Bin, Opts) of
         ok -> compile_kl(Rest, Opts);
         {error, Reason} -> {error, Reason}
@@ -135,11 +120,3 @@ write(Mod, BeamCode, Opts) ->
     ok -> ok;
     {error, Reason} -> {error, Reason}
   end.
-
-rand_modname() ->
-  list_to_atom("_" ++ rand_modname(32, [])).
-
-rand_modname(0, Acc) ->
-  Acc;
-rand_modname(N, Acc) ->
-  rand_modname(N - 1, [rand:uniform(26) + 96 | Acc]).

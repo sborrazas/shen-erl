@@ -7,7 +7,8 @@
 %% API
 -export([load_defuns/2,
          eval/1,
-         compile/2]).
+         compile/1,
+         compile/3]).
 
 %% Macros
 -define(ERL_TRUE, erl_syntax:atom(true)).
@@ -31,42 +32,33 @@ load_defuns(Mod, ToplevelDefs) ->
 
 -spec eval(shen_erl_kl_parse:kl_tree()) -> {ok, [{module(), binary()}]} |
                                            {error, binary()}.
-eval(ToplevelDefs) ->
-  eval_toplevel(ToplevelDefs, []).
+eval(ToplevelDef) ->
+  {ok, Mod, Bin} = compile(ToplevelDef),
+  code:load_binary(Mod, [], Bin),
+  Mod:kl_tle().
 
--spec compile(module(), shen_erl_kl_parse:kl_tree()) -> {ok, binary()} |
-                                                        {error, binary()}.
-compile(Mod, ToplevelDefs) ->
-  case compile_toplevel(ToplevelDefs, #code{signatures = [],
+-spec compile(shen_erl_kl_parse:kl_tree()) -> {ok, module(), binary()} |
+                                              {error, binary()}.
+compile(ToplevelDef = [defun, Name, Args, _Body]) ->
+  Mod = modname(Name),
+  shen_erl_global_stores:set_mfa(Name, {Mod, Name, length(Args)}),
+  compile(Mod, [ToplevelDef], Name);
+compile(ToplevelDef) ->
+  compile(rand_modname(32, []), [ToplevelDef], ok).
+
+-spec compile(module(), shen_erl_kl_parse:kl_tree(), atom()) -> {ok, binary()} |
+                                                                {error, binary()}.
+compile(Mod, ToplevelDefs, DefaultTle) ->
+  compile_toplevel(Mod, ToplevelDefs, #code{signatures = [],
                                             forms = [],
-                                            tles = [erl_syntax:atom(ok)]}) of
-    {ok, #code{signatures = Signatures, forms = Forms, tles = Tles}} ->
-      ModAttr = erl_syntax:attribute(erl_syntax:atom(module), [erl_syntax:atom(Mod)]),
-      ModForm = erl_syntax:revert(ModAttr),
-
-      TleSignature = erl_syntax:arity_qualifier(erl_syntax:atom(kl_tle), erl_syntax:integer(0)),
-
-      ExportAttr = erl_syntax:attribute(erl_syntax:atom(export), [erl_syntax:list([TleSignature | Signatures])]),
-      ExportForm = erl_syntax:revert(ExportAttr),
-
-      TleClause =  erl_syntax:clause([], [], lists:reverse(Tles)), % No args, no guards
-      TleFunction = erl_syntax:function(erl_syntax:atom(kl_tle), [TleClause]),
-      TleForm = erl_syntax:revert(TleFunction),
-
-      case compile:forms([ModForm, ExportForm, TleForm | Forms]) of
-        {ok, Mod, Bin} -> {ok, Bin};
-        SomethingElse -> {error, SomethingElse}
-      end;
-    {error, Reason} -> {error, Reason}
-  end.
+                                            tles = [erl_syntax:atom(DefaultTle)]}).
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
 
-compile_toplevel([[defun, Name, Args, Body] | Rest],
-                 Code = #code{signatures = Signatures,
-                              forms = Forms}) when is_atom(Name) andalso is_list(Args) ->
+compile_toplevel(Mod, [[defun, Name, Args, Body] | Rest], Code = #code{signatures = Sigs,
+                                                                       forms = Forms}) ->
   Env = shen_erl_kl_env:new(),
   {ArgsCode, Env2} = fun_vars(Args, Env),
   BodyCode = compile_exp(Body, Env2),
@@ -75,64 +67,29 @@ compile_toplevel([[defun, Name, Args, Body] | Rest],
   FunForm = erl_syntax:revert(Function),
 
   Signature = erl_syntax:arity_qualifier(erl_syntax:atom(Name), erl_syntax:integer(length(Args))),
-
-  compile_toplevel(Rest, Code#code{signatures = [Signature | Signatures],
-                                   forms = [FunForm | Forms]});
-compile_toplevel([Exp | Rest], Code = #code{tles = Tles}) ->
+  compile_toplevel(Mod, Rest, Code#code{signatures = [Signature | Sigs],
+                                        forms = [FunForm | Forms]});
+compile_toplevel(Mod, [Exp | Rest], Code = #code{tles = Tles}) ->
   Env = shen_erl_kl_env:new(),
   BodyCode = compile_exp(Exp, Env),
-  compile_toplevel(Rest, Code#code{tles = [BodyCode | Tles]});
-compile_toplevel([], Code) ->
-  {ok, Code}.
+  compile_toplevel(Mod, Rest, Code#code{tles = [BodyCode | Tles]});
+compile_toplevel(Mod, [], #code{signatures = Sigs, forms = Forms, tles = Tles}) ->
+  ModAttr = erl_syntax:attribute(erl_syntax:atom(module), [erl_syntax:atom(Mod)]),
+  ModForm = erl_syntax:revert(ModAttr),
 
-eval_toplevel([[defun, Name, Args, Body] | Rest],
-                 Modules) when is_atom(Name) andalso is_list(Args) ->
-  SanitizedName = sanitize(Name),
-  Env = shen_erl_kl_env:new(),
-  {ArgsCode, Env2} = fun_vars(Args, Env),
-  BodyCode = compile_exp(Body, Env2),
-  Clause =  erl_syntax:clause(ArgsCode, [], [BodyCode]),
-  Function = erl_syntax:function(erl_syntax:atom(SanitizedName), [Clause]),
-  FunForm = erl_syntax:revert(Function),
+  TleSignature = erl_syntax:arity_qualifier(erl_syntax:atom(kl_tle), erl_syntax:integer(0)),
 
-  ModAttr = erl_syntax:attribute(erl_syntax:atom(module), [erl_syntax:atom(SanitizedName)]),
-  ModForm =  erl_syntax:revert(ModAttr),
-
-  Signature = erl_syntax:arity_qualifier(erl_syntax:atom(SanitizedName), erl_syntax:integer(length(Args))),
-  ExportAttr = erl_syntax:attribute(erl_syntax:atom(export), [erl_syntax:list([Signature])]),
+  ExportAttr = erl_syntax:attribute(erl_syntax:atom(export), [erl_syntax:list([TleSignature | Sigs])]),
   ExportForm = erl_syntax:revert(ExportAttr),
 
-  %% case Name of
-  %%   'shen.<define>' -> io:format(standard_error, "PP: ~p~n", [erl_prettypr:format(FunForm)]);
-  %%   _ -> ok
-  %% end,
+  TleClause =  erl_syntax:clause([], [], lists:reverse(Tles)), % No args, no guards
+  TleFunction = erl_syntax:function(erl_syntax:atom(kl_tle), [TleClause]),
+  TleForm = erl_syntax:revert(TleFunction),
 
-  case compile:forms([ModForm, ExportForm, FunForm]) of
-    {ok, Mod, Bin} -> eval_toplevel(Rest, [{Mod, Bin} | Modules]);
+  case compile:forms([ModForm, ExportForm, TleForm | Forms]) of
+    {ok, Mod, Bin} -> {ok, Mod, Bin};
     SomethingElse -> {error, SomethingElse}
-  end;
-eval_toplevel([Exp | Rest], Modules) ->
-  Name = list_to_atom("tle_" ++ integer_to_list(length(Modules))), % Top level expression function name
-  Env = shen_erl_kl_env:new(),
-
-  BodyCode = compile_exp(Exp, Env),
-  Clause =  erl_syntax:clause([], [], [BodyCode]), % No args, no guards
-  Function = erl_syntax:function(erl_syntax:atom(Name), [Clause]),
-  FunForm = erl_syntax:revert(Function),
-
-  ModAttr = erl_syntax:attribute(erl_syntax:atom(module), [erl_syntax:atom(Name)]),
-  ModForm =  erl_syntax:revert(ModAttr),
-
-  Signature = erl_syntax:arity_qualifier(erl_syntax:atom(Name), erl_syntax:integer(0)), % No args
-  ExportAttr = erl_syntax:attribute(erl_syntax:atom(export), [erl_syntax:list([Signature])]),
-  ExportForm = erl_syntax:revert(ExportAttr),
-
-  case compile:forms([ModForm, ExportForm, FunForm]) of
-    {ok, Mod, Bin} -> eval_toplevel(Rest, [{Mod, Bin} | Modules]);
-    SomethingElse -> {error, SomethingElse}
-  end;
-eval_toplevel([], Modules) ->
-  {ok, Modules}.
+  end.
 
 %% Lists
 compile_exp([], _Env) -> % ()
