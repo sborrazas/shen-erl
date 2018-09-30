@@ -114,18 +114,13 @@ parse_kl_file(Filename) ->
       case io:request(In, {get_until, unicode, '', shen_erl_kl_scan, tokens, [1]}) of
         {ok, Tokens, _EndLine} ->
           shen_erl_kl_parse:parse_tree(Tokens);
-        {error, Reason} ->
-          io:format(standard_error, "ERROR: ~p~n", [Reason]),
-          {error, Reason}
+        {error, Reason} -> {error, Reason}
       end;
-    {ErrorLine, Mod, Reason} ->
-      io:format(standard_error, "ERROR: ~p, ~p, ~p~n", [ErrorLine, Mod, Reason]),
-      {error, Reason}
+    {ErrorLine, Mod, Reason} -> {error, Reason}
   end.
 
 write(Mod, BeamCode, Opts) ->
   {ok, CurrentDir} = file:get_cwd(),
-  io:format(standard_error, "SAVING: ~p~n", [Mod]),
   OutputDir = proplists:get_value(output_dir, Opts, CurrentDir),
   case file:write_file(OutputDir ++ "/" ++ atom_to_list(Mod) ++ ".beam", BeamCode) of
     ok -> ok;

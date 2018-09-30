@@ -7,7 +7,7 @@
 %% API
 -export([new/0,
          fetch/2,
-         store_var/2,
+         store_var/3,
          new_var/1]).
 
 %% Types
@@ -32,8 +32,11 @@ fetch(#env{vars = Vars}, VarKey) ->
     error -> not_found
   end.
 
--spec store_var(env(), atom()) -> {atom(), env()}.
-store_var(Env = #env{vars = Vars}, Var) ->
+-spec store_var(env(), atom(), boolean()) -> {atom(), env()}.
+store_var(Env = #env{vars = Vars}, Var, true) ->
+  Value = list_to_atom("_V" ++ integer_to_list(shen_erl_global_stores:get_varname())),
+  {Value, Env#env{vars = orddict:store(Var, Value, Vars)}};
+store_var(Env = #env{vars = Vars}, Var, false) ->
   Value = list_to_atom("V" ++ integer_to_list(shen_erl_global_stores:get_varname())),
   {Value, Env#env{vars = orddict:store(Var, Value, Vars)}}.
 

@@ -60,7 +60,8 @@ compile(Mod, ToplevelDefs, DefaultTle) ->
 compile_toplevel(Mod, [[defun, Name, Args, Body] | Rest], Code = #code{signatures = Sigs,
                                                                        forms = Forms}) ->
   Env = shen_erl_kl_env:new(),
-  {ArgsCode, Env2} = fun_vars(Args, Env),
+  UnusedVars = [Arg || Arg <- Args, is_unused(Arg, Body)],
+  {ArgsCode, Env2} = fun_vars(Args, Env, UnusedVars),
   BodyCode = compile_exp(Body, Env2),
   Clause =  erl_syntax:clause(ArgsCode, [], [BodyCode]),
   Function = erl_syntax:function(erl_syntax:atom(Name), [Clause]),
@@ -69,10 +70,12 @@ compile_toplevel(Mod, [[defun, Name, Args, Body] | Rest], Code = #code{signature
   Signature = erl_syntax:arity_qualifier(erl_syntax:atom(Name), erl_syntax:integer(length(Args))),
   compile_toplevel(Mod, Rest, Code#code{signatures = [Signature | Sigs],
                                         forms = [FunForm | Forms]});
-compile_toplevel(Mod, [Exp | Rest], Code = #code{tles = Tles}) ->
+compile_toplevel(Mod, [Exp | Rest], Code = #code{tles = Tles}) when is_list(Exp) ->
   Env = shen_erl_kl_env:new(),
   BodyCode = compile_exp(Exp, Env),
   compile_toplevel(Mod, Rest, Code#code{tles = [BodyCode | Tles]});
+compile_toplevel(Mod, [_Exp | Rest], Code) ->
+  compile_toplevel(Mod, Rest, Code);
 compile_toplevel(Mod, [], #code{signatures = Sigs, forms = Forms, tles = Tles}) ->
   ModAttr = erl_syntax:attribute(erl_syntax:atom(module), [erl_syntax:atom(Mod)]),
   ModForm = erl_syntax:revert(ModAttr),
@@ -127,7 +130,8 @@ compile_exp({string, Exp}, _Env) ->
 
 %% lambda
 compile_exp([lambda, Var, Body], Env) when is_atom(Var) -> % (lambda X (+ X 2))
-  {EVar, Env2} = shen_erl_kl_env:store_var(Env, Var),
+  IsUnused = is_unused(Var, Body),
+  {EVar, Env2} = shen_erl_kl_env:store_var(Env, Var, IsUnused),
   CBody = compile_exp(Body, Env2),
   Clause = erl_syntax:clause([erl_syntax:variable(EVar)], [], [CBody]),
   erl_syntax:fun_expr([Clause]);
@@ -135,7 +139,8 @@ compile_exp([lambda, Var, Body], Env) when is_atom(Var) -> % (lambda X (+ X 2))
 %% let
 compile_exp(['let', Var, ExpValue, Body], Env) when is_atom(Var) -> % (let X (+ 2 2) (+ X 3))
   CExpValue = compile_exp(ExpValue, Env),
-  {EVar, Env2} = shen_erl_kl_env:store_var(Env, Var),
+  IsUnused = is_unused(Var, Body),
+  {EVar, Env2} = shen_erl_kl_env:store_var(Env, Var, IsUnused),
   CBody = compile_exp(Body, Env2),
   Clause = erl_syntax:clause([erl_syntax:variable(EVar)], none, [CBody]),
   erl_syntax:case_expr(CExpValue, [Clause]);
@@ -227,12 +232,29 @@ compile_static_app(COp, Arity, CArgs, Env) when Arity < length(CArgs) ->
   compile_dynamic_app(compile_static_app(COp, Arity, StaticCArgs, Env), DynamicCArgs).
 
 %% Helper functions
-fun_vars(Args, Env) ->
-  {Args2, Env2} = lists:foldl(fun fun_var/2, {[], Env}, Args),
+is_unused(Var, Var) ->
+  false;
+is_unused(Var, [lambda, Var, _Body]) ->
+  true;
+is_unused(Var, [lambda, _Var, Body]) ->
+  is_unused(Var, Body);
+is_unused(Var, ['let', Var, _ExpValue, _Body]) ->
+  true;
+is_unused(Var, ['let', _Var, ExpValue, Body]) ->
+  is_unused(Var, ExpValue) andalso is_unused(Var, Body);
+is_unused(Var, Exp) when is_list(Exp) ->
+  lists:all(fun (E) -> is_unused(Var, E) end, Exp);
+is_unused(_Var, _Exp) ->
+  true.
+
+fun_vars(Args, Env, UnusedVars) ->
+  {Args2, Env2} = lists:foldl(fun (Var, Acc) -> fun_var(Var, UnusedVars, Acc) end,
+                              {[], Env},
+                              Args),
   {lists:reverse(Args2), Env2}.
 
-fun_var(Var, {Acc, Env}) when is_atom(Var) ->
-  {EVar, Env2} = shen_erl_kl_env:store_var(Env, Var),
+fun_var(Var, UnusedVars, {Acc, Env}) when is_atom(Var) ->
+  {EVar, Env2} = shen_erl_kl_env:store_var(Env, Var, lists:member(Var, UnusedVars)),
   {[erl_syntax:variable(EVar) | Acc], Env2}.
 
 modname(Name) ->
