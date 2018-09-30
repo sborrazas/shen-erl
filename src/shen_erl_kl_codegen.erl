@@ -195,6 +195,8 @@ compile_exp([Op | Args], Env) when is_atom(Op) -> % (a b c)
           COp = erl_syntax:module_qualifier(erl_syntax:atom(Mod), erl_syntax:atom(Fun)),
           compile_static_app(COp, Arity, CArgs, Env);
         not_found ->
+          % NOTE: Assuming if function was not previously defined, then it's going to be called
+          %       with the same number of arguments that it was defined.
           COp = erl_syntax:module_qualifier(erl_syntax:atom(modname(Op)), erl_syntax:atom(Op)),
           erl_syntax:application(COp, CArgs)
       end
