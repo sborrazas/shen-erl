@@ -37,7 +37,16 @@ start() ->
         {error, Reason} ->
           io:format(standard_error, "Error ocurred: ~s~n", [Reason]),
           init:stop(?ERROR_STATUS)
-      end
+      end;
+    ["--help" | _Args] ->
+      io:format("~nUsage: shen-erl [OPTIONS]~n~n"
+                "The Erlang port of the Shen programming language.~n~n"
+                "Options:~n~n"
+                "  --script  filename   Runs the shen script.~n"
+                "  --eval    expr       Evaluates the Shen expression~n"
+                "  --kl      filenames  Compiles the KL files into BEAM~n"
+                "  --help               Prints this message~n", []),
+      init:stop(?OK_STATUS)
   end.
 
 %%%===================================================================

@@ -13,11 +13,6 @@ SRCDIR = src
 INCDIR = include
 KLSRCDIR = kl
 
-PREFIX ?= /usr/local
-DESTLIBDIR := $(PREFIX)/lib/lfe
-DESTEBINDIR := $(DESTLIBDIR)/$(EBINDIR)
-DESTBINDIR := $(DESTLIBDIR)/$(BINDIR)
-
 CSRCS = $(notdir $(wildcard $(CSRCDIR)/*.c))
 BINS = $(CSRCS:.c=)
 
