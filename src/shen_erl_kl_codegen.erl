@@ -190,22 +190,13 @@ compile_exp([Op | Args], Env) when is_atom(Op) -> % (a b c)
       compile_dynamic_app(erl_syntax:variable(VarName), CArgs);
     not_found ->
       %% Case 1.2: Function operator is a global function
-      case proplists:get_value(Op, shen_erl_kl_primitives:module_info(exports), none) of
-        none ->
-          % 1.2.1: Function operator is a user-defined function
-          case shen_erl_global_stores:get_mfa(Op) of
-            {ok, {Mod, Fun, Arity}} ->
-              COp = erl_syntax:module_qualifier(erl_syntax:atom(Mod), erl_syntax:atom(Fun)),
-              compile_static_app(COp, Arity, CArgs, Env);
-            not_found ->
-              COp = erl_syntax:module_qualifier(erl_syntax:atom(modname(Op)), erl_syntax:atom(Op)),
-              erl_syntax:application(COp, CArgs)
-          end;
-        Arity ->
-          % 1.2.2: Function operator is a KL primitive
-          CMod = erl_syntax:module_qualifier(erl_syntax:atom(shen_erl_kl_primitives),
-                                             erl_syntax:atom(Op)),
-          compile_static_app(CMod, Arity, CArgs, Env)
+      case shen_erl_global_stores:get_mfa(Op) of
+        {ok, {Mod, Fun, Arity}} ->
+          COp = erl_syntax:module_qualifier(erl_syntax:atom(Mod), erl_syntax:atom(Fun)),
+          compile_static_app(COp, Arity, CArgs, Env);
+        not_found ->
+          COp = erl_syntax:module_qualifier(erl_syntax:atom(modname(Op)), erl_syntax:atom(Op)),
+          erl_syntax:application(COp, CArgs)
       end
   end;
 

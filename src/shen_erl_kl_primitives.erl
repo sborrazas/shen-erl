@@ -46,8 +46,6 @@
          'get-time'/1,
          'type'/2]).
 
--export(['symbol?'/1]).
-
 %%%===================================================================
 %%% API
 %%%===================================================================
@@ -242,9 +240,6 @@ close(Stream) ->
 %% type
 type(Val, _Hint) -> Val.
 
-'symbol?'(Val) when is_atom(Val) -> true;
-'symbol?'(_Val) -> false.
-
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
@@ -257,8 +252,3 @@ flatten_kl_code({cons, Car, Cdr}) ->
   end;
 flatten_kl_code(Code) ->
   Code.
-
-nest_calls(Mod, Fun, 0, Args) ->
-  erlang:apply(Mod, Fun, lists:reverse(Args));
-nest_calls(Mod, Fun, Arity, Args) ->
-  fun (Arg) -> nest_calls(Mod, Fun, Arity - 1, [Arg | Args]) end.
