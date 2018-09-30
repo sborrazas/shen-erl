@@ -29,7 +29,8 @@
                   'kl_yacc']).
 
 -define(BASE_KL_MODS, [shen_erl_kl_primitives,
-                       shen_erl_kl_overrides]).
+                       shen_erl_kl_overrides,
+                       shen_erl_kl_extensions]).
 
 %% Types
 -type opt() :: {output_dir, string()}.
