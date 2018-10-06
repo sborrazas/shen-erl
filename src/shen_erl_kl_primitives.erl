@@ -236,8 +236,7 @@ close(Stream) ->
   Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}),
   calendar:datetime_to_gregorian_seconds(calendar:universal_time()) - Epoch;
 'get-time'(run) ->
-  Epoch = calendar:datetime_to_gregorian_seconds({{1970, 1, 1}, {0, 0, 0}}), % TODO
-  calendar:datetime_to_gregorian_seconds(calendar:universal_time()) - Epoch.
+  calendar:datetime_to_gregorian_seconds(calendar:universal_time()) - shen_erl_global_stores:start_time().
 
 %% type
 type(Val, _Hint) -> Val.
