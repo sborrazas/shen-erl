@@ -245,10 +245,6 @@ type(Val, _Hint) -> Val.
 %%%===================================================================
 
 flatten_kl_code({cons, Car, Cdr}) ->
-  case flatten_kl_code(Cdr) of
-    FlattenedCdr when is_list(FlattenedCdr) -> [flatten_kl_code(Car) | FlattenedCdr]
-%% ;
-%%     FlattenedCdr -> {cons, flatten_kl_code(Car), FlattenedCdr}
-  end;
+  [flatten_kl_code(Car) | flatten_kl_code(Cdr)];
 flatten_kl_code(Code) ->
   Code.
