@@ -18,6 +18,10 @@
 -define(VARIABLE_COUNTER_STORE_NAME, '_kl_variables_counter_store').
 -define(VARIABLE_COUNTER_KEY, var_counter).
 
+-define(PORT_KL_MODS, [shen_erl_kl_primitives,
+                       shen_erl_kl_overrides,
+                       shen_erl_kl_extensions]).
+
 %%%===================================================================
 %%% API
 %%%===================================================================
@@ -26,7 +30,11 @@
 init() ->
   ets:new(?FUNCTIONS_STORE_NAME, [set, named_table]),
   ets:new(?VALUES_STORE_NAME, [set, named_table]),
-  ets:new(?VARIABLE_COUNTER_STORE_NAME, [set, named_table]).
+  ets:new(?VARIABLE_COUNTER_STORE_NAME, [set, named_table]),
+  [[set_mfa(FunName, {Mod, FunName, Arity}) ||
+     {FunName, Arity} <- Mod:module_info(exports),
+     FunName =/= module_info] || Mod <- ?PORT_KL_MODS].
+
 
 -spec get_mfa(atom()) -> {ok, mfa()} | not_found.
 get_mfa(FunName) ->

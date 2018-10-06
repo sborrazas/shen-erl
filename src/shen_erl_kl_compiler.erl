@@ -28,10 +28,6 @@
                   'kl_types',
                   'kl_yacc']).
 
--define(BASE_KL_MODS, [shen_erl_kl_primitives,
-                       shen_erl_kl_overrides,
-                       shen_erl_kl_extensions]).
-
 %% Types
 -type opt() :: {output_dir, string()}.
 
@@ -43,7 +39,6 @@
 
 -spec files_kl([string()], [opt()]) -> ok | {error, binary()}.
 files_kl(Filenames, Opts) ->
-  load_base_funs(),
   case parse_files(Filenames, []) of
     {ok, FilesAsts} -> compile_kl(FilesAsts, Opts);
     {error, Reason} -> {error, Reason}
@@ -73,13 +68,7 @@ start_repl() ->
 %%% Internal functions
 %%%===================================================================
 
-load_base_funs() ->
-  [[shen_erl_global_stores:set_mfa(FunName, {Mod, FunName, Arity}) ||
-     {FunName, Arity} <- Mod:module_info(exports),
-     FunName =/= module_info] || Mod <- ?BASE_KL_MODS].
-
 load_funs() ->
-  load_base_funs(),
   [[shen_erl_global_stores:set_mfa(FunName, {Mod, FunName, Arity}) ||
      {FunName, Arity} <- Mod:module_info(exports),
      FunName =/= kl_tle, FunName =/= module_info] || Mod <- ?KL_MODS],

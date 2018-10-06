@@ -168,5 +168,5 @@ t_compile_static_app_more_params(_Config) ->
 
 compile_and_load(Funs) ->
   shen_erl_kl_codegen:load_defuns(kl, Funs),
-  {ok, kl, Bin} = shen_erl_kl_codegen:compile(kl, Funs),
+  {ok, kl, Bin} = shen_erl_kl_codegen:compile(kl, Funs, ok),
   code:load_binary(kl, [], Bin).
