@@ -155,6 +155,12 @@ compile_exp(['if', Exp, ExpTrue, ExpFalse], Env) ->
   erl_syntax:case_expr(CExp, [TrueClause, FalseClause]);
 
 %% cond
+compile_exp(['cond', [Exp, ExpTrue]], Env) ->
+  CExp = compile_exp(Exp, Env),
+  CExpTrue = compile_exp(ExpTrue, Env),
+  TrueClause = erl_syntax:clause([?ERL_TRUE], none, [CExpTrue]),
+  erl_syntax:case_expr(CExp, [TrueClause]);
+
 compile_exp(['cond', [Exp, ExpTrue] | Rest], Env) ->
   CExp = compile_exp(Exp, Env),
   CExpTrue = compile_exp(ExpTrue, Env),
@@ -162,11 +168,6 @@ compile_exp(['cond', [Exp, ExpTrue] | Rest], Env) ->
   TrueClause = erl_syntax:clause([?ERL_TRUE], none, [CExpTrue]),
   FalseClause = erl_syntax:clause([?ERL_FALSE], none, [CExpFalse]),
   erl_syntax:case_expr(CExp, [TrueClause, FalseClause]);
-
-compile_exp(['cond'], _Env) ->
-  erl_syntax:application(erl_syntax:atom(throw),
-                         [erl_syntax:tuple([erl_syntax:atom(kl_error),
-                                            erl_syntax:string("End of cond reached")])]);
 
 %% Lazy values
 compile_exp([freeze, Body], Env) ->
