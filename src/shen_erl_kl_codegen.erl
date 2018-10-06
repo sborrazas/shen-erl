@@ -177,12 +177,15 @@ compile_exp([freeze, Body], Env) ->
 
 %% Trap errors
 compile_exp(['trap-error', Body, Handler], Env) ->
-  {ErrorVarName, Env2} = shen_erl_kl_env:new_var(Env),
-  CBody = compile_exp(Body, Env2),
-  CHandlerFun = compile_exp(Handler, Env2),
-  CErrorVar = erl_syntax:variable(ErrorVarName),
-  CError = erl_syntax:tuple([erl_syntax:atom(kl_error), CErrorVar]),
-  CHandler = erl_syntax:clause([CError], none, [erl_syntax:application(CHandlerFun, [CErrorVar])]),
+  {ErrorClassVarName, Env2} = shen_erl_kl_env:new_var(Env),
+  {ErrorBodyVarName, _Env3} = shen_erl_kl_env:new_var(Env2),
+  CBody = compile_exp(Body, Env),
+  CHandlerFun = compile_exp(Handler, Env),
+  CErrorClassVar = erl_syntax:variable(ErrorClassVarName),
+  CErrorBodyVar = erl_syntax:variable(ErrorBodyVarName),
+  CError = erl_syntax:tuple([CErrorClassVar, CErrorBodyVar]),
+  CErrorQualifier = erl_syntax:class_qualifier(CErrorClassVar, CErrorBodyVar),
+  CHandler = erl_syntax:clause([CErrorQualifier], none, [erl_syntax:application(CHandlerFun, [CError])]),
   erl_syntax:try_expr([CBody], [CHandler]);
 
 %% Function applications

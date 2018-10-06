@@ -18,7 +18,8 @@
          t_compile_dynamic_app_var_freeze/1,
          t_compile_static_app/1,
          t_compile_static_app_less_params/1,
-         t_compile_static_app_more_params/1]).
+         t_compile_static_app_more_params/1,
+         t_compile_trap_error/1]).
 
 -include_lib("common_test/include/ct.hrl").
 
@@ -40,7 +41,8 @@ groups() ->
      t_compile_dynamic_app_var_freeze,
      t_compile_static_app,
      t_compile_static_app_less_params,
-     t_compile_static_app_more_params]}].
+     t_compile_static_app_more_params,
+     t_compile_trap_error]}].
 
 suite() ->
   [{timetrap, {minutes, 1}}].
@@ -161,6 +163,11 @@ t_compile_static_app_more_params(_Config) ->
   compile_and_load([WeirdSum]),
   3 = kl:sum(1, 2),
   0 = kl:sum(-1, 1).
+
+t_compile_trap_error(_Config) ->
+  Trapper = [defun, 'trapper', [], ['trap-error', ['/', 1, 0], [lambda, 'E', a]]],
+  compile_and_load([Trapper]),
+  a = kl:trapper().
 
 %%%===================================================================
 %%% Internal functions

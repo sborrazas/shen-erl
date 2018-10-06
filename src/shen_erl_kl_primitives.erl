@@ -85,11 +85,13 @@
 'if'(false, _TrueVal, FalseVal) -> FalseVal.
 
 %% simple-error
-'simple-error'({string, ErrorMsg}) -> throw({kl_error, ErrorMsg}).
+'simple-error'({string, ErrorMsg}) -> throw({simple_error, ErrorMsg}).
 
 %% error-to-string
-'error-to-string'(Error) ->
-  {string, Error}.
+'error-to-string'({simple_error, ErrorMsg}) ->
+  {string, ErrorMsg};
+'error-to-string'({Class, Body}) ->
+  {string, lists:flatten(io_lib:format("~p:~p", [Class, Body]))}.
 
 %% intern
 intern({string, SymbolStr}) -> list_to_atom(SymbolStr).
