@@ -208,7 +208,6 @@ tl(_Val) -> 'simple-error'({string, "Not a cons"}).
 open({string, FilePath}, in) ->
   {string, HomePath} = value('*home-directory*'),
   FileAbsPath = filename:absname(FilePath, HomePath),
-  io:format(standard_error, "OPENING: ~p~n", [FileAbsPath]),
   {ok, File} = file:open(FileAbsPath, [read]),
   File;
 open({string, FilePath}, out) ->
