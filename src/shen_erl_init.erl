@@ -25,7 +25,8 @@ start() ->
       io:format("File `~s` loaded successfully.~n", [Filename]),
       init:stop(?OK_STATUS);
     ["--eval", Code | _Args] ->
-      shen_erl_kl_compiler:eval(Code),
+      Result = shen_erl_kl_compiler:eval(Code),
+      io:format("~p~n", [Result]),
       init:stop(?OK_STATUS);
     ["--kl" | Args] ->
       {Filenames, Opts} = parse_opts(Args),

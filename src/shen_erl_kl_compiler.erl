@@ -57,7 +57,7 @@ load(Filename) ->
 -spec eval(string()) -> term().
 eval(ShenCode) ->
   load_funs(),
-  kl_sys:eval(ShenCode).
+  kl_sys:eval(shen_erl_kl_primitives:'hd'(kl_reader:'read-from-string'({string, ShenCode}))).
 
 -spec start_repl() -> ok.
 start_repl() ->
@@ -105,7 +105,7 @@ parse_kl_file(Filename) ->
           shen_erl_kl_parse:parse_tree(Tokens);
         {error, Reason} -> {error, Reason}
       end;
-    {ErrorLine, Mod, Reason} -> {error, Reason}
+    {_ErrorLine, _Mod, Reason} -> {error, Reason}
   end.
 
 write(Mod, BeamCode, Opts) ->
