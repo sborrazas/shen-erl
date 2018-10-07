@@ -14,7 +14,7 @@
 %%%===================================================================
 
 'erl.apply'(Mod, Fun, Args) ->
-  erlang:apply(Mod, Fun, Args).
+  erlang:apply(Mod, Fun, flatten_kl(Args)).
 
 'erl.receive'(Timeout) ->
   receive
@@ -25,3 +25,14 @@
 
 'erl.send'(Pid, Message) ->
   Pid ! Message.
+
+%%%===================================================================
+%%% Internal functions
+%%%===================================================================
+
+flatten_kl({cons, Car, Cdr}) ->
+  [flatten_kl(Car) | flatten_kl(Cdr)];
+flatten_kl({string, Str}) ->
+  Str;
+flatten_kl(Code) ->
+  Code.
