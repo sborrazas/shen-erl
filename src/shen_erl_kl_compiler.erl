@@ -44,7 +44,7 @@ files_kl(Filenames, Opts) ->
     {error, Reason} -> {error, Reason}
   end.
 
--spec eval_kl(term()) -> ok. % TODO Type parameter
+-spec eval_kl(term()) -> term().
 eval_kl(KlCode) ->
   shen_erl_kl_codegen:eval(KlCode).
 
@@ -105,7 +105,7 @@ parse_kl_file(Filename) ->
           shen_erl_kl_parse:parse_tree(Tokens);
         {error, Reason} -> {error, Reason}
       end;
-    {_ErrorLine, _Mod, Reason} -> {error, Reason}
+    {error, Reason} -> {error, Reason}
   end.
 
 write(Mod, BeamCode, Opts) ->

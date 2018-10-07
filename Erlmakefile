@@ -15,6 +15,8 @@ ERLC_OPTS = +debug_info +report +verbose +warn_export_all \
 	+warn_export_vars +warn_obsolete_guard +warn_shadow_vars +warn_untyped_record \
 	+warn_unused_import +warnings_as_errors
 
+DIALYZER_OPTS = -Wno_fail_call -Wno_match
+
 C_SRC_DIR = none # Ignore C files
 
 include erlang.mk

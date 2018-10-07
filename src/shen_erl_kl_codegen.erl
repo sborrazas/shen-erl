@@ -28,13 +28,13 @@
 -spec load_defuns(module(), shen_erl_kl_parse:kl_tree()) -> ok.
 load_defuns(Mod, ToplevelDefs) ->
   [shen_erl_global_stores:set_mfa(Name, {Mod, Name, length(Args)}) ||
-    [defun, Name, Args, _Body] <- ToplevelDefs, is_atom(Name), is_list(Args)].
+    [defun, Name, Args, _Body] <- ToplevelDefs, is_atom(Name), is_list(Args)],
+  ok.
 
--spec eval(shen_erl_kl_parse:kl_tree()) -> {ok, [{module(), binary()}]} |
-                                           {error, binary()}.
+-spec eval(shen_erl_kl_parse:kl_tree()) -> term().
 eval(ToplevelDef) ->
   {ok, Mod, Bin} = compile(ToplevelDef),
-  code:load_binary(Mod, [], Bin),
+  {module, Mod} = code:load_binary(Mod, [], Bin),
   Mod:kl_tle().
 
 -spec compile(shen_erl_kl_parse:kl_tree()) -> {ok, module(), binary()} |

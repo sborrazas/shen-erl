@@ -38,7 +38,8 @@ init() ->
   set_val(?START_TIME_KEY, calendar:datetime_to_gregorian_seconds(calendar:universal_time())),
   [[set_mfa(FunName, {Mod, FunName, Arity}) ||
      {FunName, Arity} <- Mod:module_info(exports),
-     FunName =/= module_info] || Mod <- ?PORT_KL_MODS].
+     FunName =/= module_info] || Mod <- ?PORT_KL_MODS],
+  ok.
 
 -spec start_time() -> non_neg_integer().
 start_time() ->
@@ -56,7 +57,8 @@ get_mfa(FunName) ->
 
 -spec set_mfa(atom(), mfa()) -> ok.
 set_mfa(FunName, MFA) ->
-  ets:insert(?FUNCTIONS_STORE_NAME, {FunName, MFA}).
+  ets:insert(?FUNCTIONS_STORE_NAME, {FunName, MFA}),
+  ok.
 
 -spec get_val(atom()) -> {ok, term()} | not_found.
 get_val(Key) ->
@@ -69,7 +71,8 @@ get_val(Key) ->
 
 -spec set_val(atom(), term()) -> ok.
 set_val(Key, Val) ->
-  ets:insert(?VALUES_STORE_NAME, {Key, Val}).
+  ets:insert(?VALUES_STORE_NAME, {Key, Val}),
+  ok.
 
 -spec get_varname() -> non_neg_integer().
 get_varname() ->
