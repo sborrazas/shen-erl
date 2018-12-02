@@ -100,15 +100,15 @@ compile_exp([], _Env) -> % ()
 
 %% Boolean operators
 compile_exp(['and', Exp1, Exp2], Env) -> % (and Exp1 Exp2)
-  CExp1 = compile_exp(Exp1, Env),
-  CExp2 = compile_exp(Exp2, Env),
+  CExp1 = compile_exp(force_boolean(Exp1), Env),
+  CExp2 = compile_exp(force_boolean(Exp2), Env),
   erl_syntax:infix_expr(CExp1, erl_syntax:operator("andalso"), CExp2);
 compile_exp(['or', Exp1, Exp2], Env) -> % (or Exp1 Exp2)
-  CExp1 = compile_exp(Exp1, Env),
-  CExp2 = compile_exp(Exp2, Env),
+  CExp1 = compile_exp(force_boolean(Exp1), Env),
+  CExp2 = compile_exp(force_boolean(Exp2), Env),
   erl_syntax:infix_expr(CExp1, erl_syntax:operator("orelse"), CExp2);
 compile_exp(['not', Exp], Env) -> % (not Exp)
-  CExp = compile_exp(Exp, Env),
+  CExp = compile_exp(force_boolean(Exp), Env),
   erl_syntax:prefix_expr(erl_syntax:operator("not"), CExp);
 
 %% Symbols and variables
@@ -147,7 +147,7 @@ compile_exp(['let', Var, ExpValue, Body], Env) when is_atom(Var) -> % (let X (+ 
 
 %% if
 compile_exp(['if', Exp, ExpTrue, ExpFalse], Env) ->
-  CExp = compile_exp(Exp, Env),
+  CExp = compile_exp(force_boolean(Exp), Env),
   CExpTrue = compile_exp(ExpTrue, Env),
   CExpFalse = compile_exp(ExpFalse, Env),
   TrueClause = erl_syntax:clause([?ERL_TRUE], none, [CExpTrue]),
@@ -156,13 +156,13 @@ compile_exp(['if', Exp, ExpTrue, ExpFalse], Env) ->
 
 %% cond
 compile_exp(['cond', [Exp, ExpTrue]], Env) ->
-  CExp = compile_exp(Exp, Env),
+  CExp = compile_exp(force_boolean(Exp), Env),
   CExpTrue = compile_exp(ExpTrue, Env),
   TrueClause = erl_syntax:clause([?ERL_TRUE], none, [CExpTrue]),
   erl_syntax:case_expr(CExp, [TrueClause]);
 
 compile_exp(['cond', [Exp, ExpTrue] | Rest], Env) ->
-  CExp = compile_exp(Exp, Env),
+  CExp = compile_exp(force_boolean(Exp), Env),
   CExpTrue = compile_exp(ExpTrue, Env),
   CExpFalse = compile_exp(['cond' | Rest], Env), % TODO: Check all the cond structure beforehand
   TrueClause = erl_syntax:clause([?ERL_TRUE], none, [CExpTrue]),
@@ -268,3 +268,37 @@ rand_modname(0, Acc) ->
   list_to_atom("_kl_" ++ Acc);
 rand_modname(N, Acc) ->
   rand_modname(N - 1, [rand:uniform(26) + 96 | Acc]).
+
+yields_boolean(true) -> true;
+yields_boolean(false) -> false;
+yields_boolean(['let', _Var, _ExpValue, Body]) -> yields_boolean(Body);
+yields_boolean(['do', _Exp1, Exp2]) -> yields_boolean(Exp2);
+yields_boolean([Op, _Param1, _Param2]) when Op =:= 'or' orelse
+                                            Op =:= 'and' orelse
+                                            Op =:= '<' orelse
+                                            Op =:= '>' orelse
+                                            Op =:= '>=' orelse
+                                            Op =:= '<=' orelse
+                                            Op =:= '=' ->
+  true;
+yields_boolean([Op, _Param1]) when Op =:= 'not' orelse
+                                   Op =:= 'string?' orelse
+                                   Op =:= 'vector?' orelse
+                                   Op =:= 'number?' orelse
+                                   Op =:= 'cons?' orelse
+                                   Op =:= 'absvector?' orelse
+                                   Op =:= 'element?' orelse
+                                   Op =:= 'symbol?' orelse
+                                   Op =:= 'tuple?' orelse
+                                   Op =:= 'variable?' orelse
+                                   Op =:= 'boolean?' orelse
+                                   Op =:= 'empty?' orelse
+                                   Op =:= 'shen.pvar?' ->
+  true;
+yields_boolean(_Exp) -> false.
+
+force_boolean(Exp) ->
+  case yields_boolean(Exp) of
+    true -> Exp;
+    false -> ['assert-boolean', Exp]
+  end.

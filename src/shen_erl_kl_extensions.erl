@@ -7,7 +7,8 @@
 %% API
 -export(['erl.apply'/3,
          'erl.receive'/1,
-         'erl.send'/2]).
+         'erl.send'/2,
+         'assert-boolean'/1]).
 
 %%%===================================================================
 %%% API
@@ -25,6 +26,12 @@
 
 'erl.send'(Pid, Message) ->
   Pid ! Message.
+
+'assert-boolean'(true) -> true;
+'assert-boolean'(false) -> false;
+'assert-boolean'(Value) ->
+  ErrorMsg = io_lib:format("Expected a boolean in if/and/or/cond expression, got `~p`", [Value]),
+  shen_erl_kl_primitives:'simple-error'({string, ErrorMsg}).
 
 %%%===================================================================
 %%% Internal functions
