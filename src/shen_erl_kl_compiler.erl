@@ -26,7 +26,11 @@
                   'kl_sys',
                   'kl_toplevel',
                   'kl_types',
-                  'kl_yacc']).
+                  'kl_yacc',
+                  'kl_init',
+                  'kl_extension-features',
+                  'kl_extension-launcher',
+                  'kl_extension-factorise-defun']).
 
 %% Types
 -type opt() :: {output_dir, string()}.
@@ -62,7 +66,7 @@ eval(ShenCode) ->
 -spec start_repl() -> ok.
 start_repl() ->
   load_funs(),
-  kl_toplevel:'shen.shen'().
+  kl_toplevel:'shen.repl'().
 
 %%%===================================================================
 %%% Internal functions
@@ -72,7 +76,7 @@ load_funs() ->
   [[shen_erl_global_stores:set_mfa(FunName, {Mod, FunName, Arity}) ||
      {FunName, Arity} <- Mod:module_info(exports),
      FunName =/= kl_tle, FunName =/= module_info] || Mod <- ?KL_MODS],
-  [Mod:kl_tle() || Mod <- ?KL_MODS].
+  kl_init:'shen.initialise'().
 
 compile_kl([{Mod, Ast} | Rest], Opts) ->
   io:format(standard_error, "COMPILING ~p~n", [Mod]),

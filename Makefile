@@ -1,6 +1,6 @@
 BASE_DIR = $(shell pwd)
 
-SHENVERSION = 21.0
+SHENVERSION = 22.2
 
 INSTALL = install
 INSTALL_DIR = $(INSTALL) -m755 -d
