@@ -1,5 +1,7 @@
 BASE_DIR = $(shell pwd)
 
+SHENVERSION = 21.0
+
 INSTALL = install
 INSTALL_DIR = $(INSTALL) -m755 -d
 INSTALL_DATA = $(INSTALL) -m644
@@ -29,6 +31,14 @@ EXE ?= shen-erl
 .PHONY: all
 .DEFAULT: all
 all: $(EXE)
+
+## Shen sources
+ShenOSKernel-$(SHENVERSION):
+	curl -LO 'https://github.com/Shen-Language/shen-sources/releases/download/shen-$(SHENVERSION)/ShenOSKernel-$(SHENVERSION).tar.gz'
+	tar xzf ShenOSKernel-$(SHENVERSION).tar.gz
+
+$(KLSRCDIR): ShenOSKernel-$(SHENVERSION)
+	cp -r ShenOSKernel-$(SHENVERSION)/klambda $(KLSRCDIR)
 
 ## Compile C files
 $(BINDIR)/%: $(CSRCDIR)/%.c
@@ -67,10 +77,8 @@ shen-kl: $(EXE)
 	SHEN_ERL_ROOTDIR=$(BASE_DIR) $(BINDIR)/$(EXE) --kl $(addprefix $(KLSRCDIR)/, $(KL_SRCS)) --output-dir $(EBINDIR)
 
 ## Tests
-test/shen:
-	git clone https://github.com/Shen-Language/shen-sources test/shen-sources
-	mv test/shen-sources/tests test/shen
-	rm -rf test/shen-sources
+test/shen: ShenOSKernel-$(SHENVERSION)
+	cp -r ShenOSKernel-$(SHENVERSION)/tests test/shen
 
 .PHONY: shen-tests
 shen-tests: shen-kl test/shen
