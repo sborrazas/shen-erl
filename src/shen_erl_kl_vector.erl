@@ -39,9 +39,10 @@
 %%% API
 %%%===================================================================
 
--spec new(length()) -> {ok, vec()}.
+-spec new(length()) -> vec().
 new(Length) ->
-  gen_server:start_link(?MODULE, [Length], []).
+  {ok, Vec} = gen_server:start_link(?MODULE, [Length], []),
+  Vec.
 
 -spec set(vec(), index(), term()) -> ok.
 set(Vec, Index, Term) ->

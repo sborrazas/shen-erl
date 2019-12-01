@@ -159,8 +159,7 @@ cn({string, Str1}, {string, Str2}) -> {string, Str1 ++ Str2}.
 
 %% absvector
 absvector(Length) ->
-  {ok, Vec} = shen_erl_kl_vector:new(Length),
-  {vector, Vec}.
+  {vector, shen_erl_kl_vector:new(Length)}.
 
 %% address->
 'address->'({vector, Vec}, Index, Val) ->
