@@ -207,6 +207,14 @@ compile_exp(['%%goto-label', Label | Args], Env) ->
 compile_exp(['%%return', Exp], Env) ->
   compile_exp(Exp, Env);
 
+%% Function call optimizations
+
+compile_exp(['intern', {string, SymbolStr}], _Env) ->
+  erl_syntax:atom(list_to_atom(SymbolStr));
+
+compile_exp(['thaw', Exp], Env) ->
+  compile_exp([Exp], Env);
+
 %% Function applications
 
 %% Case 1: Function operator is an atom
