@@ -188,6 +188,25 @@ compile_exp(['trap-error', Body, Handler], Env) ->
   CHandler = erl_syntax:clause([CErrorQualifier], none, [erl_syntax:application(CHandlerFun, [CError])]),
   erl_syntax:try_expr([CBody], [CHandler]);
 
+%% Factorization
+compile_exp(['%%let-label', [Label], LabelBody, Body], Env) ->
+  EmptyLambda = ['freeze', LabelBody],
+  compile_exp(['let', Label, EmptyLambda, Body], Env);
+
+compile_exp(['%%let-label', [Label | Vars], LabelBody, Body], Env) ->
+  NestedLambdas = lists:foldr(fun
+                                (Var, NestedBody) -> ['lambda', Var, NestedBody]
+                              end,
+                              LabelBody,
+                              Vars),
+  compile_exp(['let', Label, NestedLambdas, Body], Env);
+
+compile_exp(['%%goto-label', Label | Args], Env) ->
+  compile_exp([Label | Args], Env);
+
+compile_exp(['%%return', Exp], Env) ->
+  compile_exp(Exp, Env);
+
 %% Function applications
 
 %% Case 1: Function operator is an atom

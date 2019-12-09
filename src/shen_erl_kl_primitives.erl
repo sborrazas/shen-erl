@@ -226,7 +226,12 @@ close(Stream) ->
 
 %% eval-kl
 'eval-kl'(KlCode) ->
-  KlCodeFlat = flatten_kl_code(KlCode),
+  KlCode2 =
+    case module_loaded('kl_extension-factorise-defun') of
+      true -> 'kl_extension-factorise-defun':'shen.x.factorise-defun.factorise-defun'(KlCode);
+      false -> KlCode
+    end,
+  KlCodeFlat = flatten_kl_code(KlCode2),
   shen_erl_kl_compiler:eval_kl(KlCodeFlat).
 
 %% get-time

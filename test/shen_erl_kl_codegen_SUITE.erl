@@ -19,7 +19,8 @@
          t_compile_static_app/1,
          t_compile_static_app_less_params/1,
          t_compile_static_app_more_params/1,
-         t_compile_trap_error/1]).
+         t_compile_trap_error/1,
+         t_compile_factorized_fun/1]).
 
 -include_lib("common_test/include/ct.hrl").
 
@@ -42,7 +43,8 @@ groups() ->
      t_compile_static_app,
      t_compile_static_app_less_params,
      t_compile_static_app_more_params,
-     t_compile_trap_error]}].
+     t_compile_trap_error,
+     t_compile_factorized_fun]}].
 
 suite() ->
   [{timetrap, {minutes, 1}}].
@@ -168,6 +170,34 @@ t_compile_trap_error(_Config) ->
   Trapper = [defun, 'trapper', [], ['trap-error', ['/', 1, 0], [lambda, 'E', a]]],
   compile_and_load([Trapper]),
   a = kl:trapper().
+
+t_compile_factorized_fun(_Config) ->
+  %% (define factorized
+  %%   [1 X | Xs] 1 -> X
+  %%   [1 X | Xs] 2 -> Xs
+  %%   [2 X | Xs] _ -> X)
+  FactorizedFun =
+    [defun, 'factorized', ['V1345', 'V1346'],
+     ['%%let-label', ['%%label1347'], ['%%return', ['shen.f_error', 'factorized']],
+      ['if', ['cons?', 'V1345'],
+      ['let', 'V1345/hd', [hd, 'V1345'],
+        ['let', 'V1345/tl', [tl, 'V1345'],
+          ['%%let-label', ['%%label1348', 'V1345/hd', 'V1345/tl'],
+           ['if', ['and', ['=', 2, 'V1345/hd'], ['cons?', 'V1345/tl']],
+            ['%%return', [hd, 'V1345/tl']],
+            ['%%goto-label', '%%label1347']],
+           ['if', ['and', ['=', 1, 'V1345/hd'], ['cons?', 'V1345/tl']],
+            ['if', ['=', 1, 'V1346'],
+             ['%%return', [hd, 'V1345/tl']],
+             ['if', ['=', 2, 'V1346'],
+              ['%%return', [tl, 'V1345/tl']],
+              ['%%goto-label', '%%label1348', 'V1345/hd', 'V1345/tl']]],
+            ['%%goto-label', '%%label1348', 'V1345/hd', 'V1345/tl']]]]],
+       ['%%goto-label', '%%label1347']]]],
+  compile_and_load([FactorizedFun]),
+  8 = kl:factorized({cons, 1, {cons, 8, []}}, 1),
+  {cons, 9, []} = kl:factorized({cons, 1, {cons, 8, {cons, 9, []}}}, 2),
+  10 = kl:factorized({cons, 2, {cons, 10, []}}, 3).
 
 %%%===================================================================
 %%% Internal functions
