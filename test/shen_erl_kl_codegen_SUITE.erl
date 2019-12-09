@@ -195,9 +195,9 @@ t_compile_factorized_fun(_Config) ->
             ['%%goto-label', '%%label1348', 'V1345/hd', 'V1345/tl']]]]],
        ['%%goto-label', '%%label1347']]]],
   compile_and_load([FactorizedFun]),
-  8 = kl:factorized({cons, 1, {cons, 8, []}}, 1),
-  {cons, 9, []} = kl:factorized({cons, 1, {cons, 8, {cons, 9, []}}}, 2),
-  10 = kl:factorized({cons, 2, {cons, 10, []}}, 3).
+  8 = kl:factorized([1, 8], 1),
+  [9] = kl:factorized([1, 8, 9], 2),
+  10 = kl:factorized([2, 10], 3).
 
 %%%===================================================================
 %%% Internal functions

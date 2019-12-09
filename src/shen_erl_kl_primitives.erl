@@ -137,7 +137,7 @@ str(Val) when is_number(Val) ->
   {string, lists:flatten(io_lib:format("~p", [Val]))};
 str(Val) when is_pid(Val) ->
   {string, lists:flatten(io_lib:format("PID: ~p", [Val]))};
-str({cons, Car, Cdr}) ->
+str([Car | Cdr]) ->
   {string, StrCar} = str(Car),
   {string, StrCdr} = str(Cdr),
   {string, lists:flatten(io_lib:format("(~s, ~s)", [StrCar, StrCdr]))};
@@ -178,18 +178,18 @@ absvector(Length) ->
 'absvector?'(_Val) -> false.
 
 %% cons?
-'cons?'({cons, _H, _T}) -> true;
+'cons?'([_H | _T]) -> true;
 'cons?'(_Val) -> false.
 
 %% cons
-cons(H, T) -> {cons, H, T}.
+cons(H, T) -> [H | T].
 
 %% hd
-hd({cons, H, _T}) -> H;
+hd([H | _T]) -> H;
 hd(_Val) -> 'simple-error'({string, "Not a cons"}).
 
 %% tl
-tl({cons, _H, T}) -> T;
+tl([_H | T]) -> T;
 tl(_Val) -> 'simple-error'({string, "Not a cons"}).
 
 %% write-byte
@@ -231,8 +231,7 @@ close(Stream) ->
       true -> 'kl_extension-factorise-defun':'shen.x.factorise-defun.factorise-defun'(KlCode);
       false -> KlCode
     end,
-  KlCodeFlat = flatten_kl_code(KlCode2),
-  shen_erl_kl_compiler:eval_kl(KlCodeFlat).
+  shen_erl_kl_compiler:eval_kl(KlCode2).
 
 %% get-time
 'get-time'(unix) ->
@@ -247,8 +246,3 @@ type(Val, _Hint) -> Val.
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-
-flatten_kl_code({cons, Car, Cdr}) ->
-  [flatten_kl_code(Car) | flatten_kl_code(Cdr)];
-flatten_kl_code(Code) ->
-  Code.
