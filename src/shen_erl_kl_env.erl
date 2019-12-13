@@ -14,8 +14,10 @@
 -record(env, {vars :: orddict:orddict(atom(), atom())}).
 
 -opaque env() :: #env{}.
+-type is_unused() :: boolean().
 
--export_type([env/0]).
+-export_type([env/0,
+              is_unused/0]).
 
 %%%===================================================================
 %%% API
@@ -32,7 +34,7 @@ fetch(#env{vars = Vars}, VarKey) ->
     error -> not_found
   end.
 
--spec store_var(env(), atom(), boolean()) -> {atom(), env()}.
+-spec store_var(env(), atom(), is_unused()) -> {atom(), env()}.
 store_var(Env = #env{vars = Vars}, Var, true) ->
   Value = list_to_atom("_V" ++ integer_to_list(shen_erl_global_stores:get_varname())),
   {Value, Env#env{vars = orddict:store(Var, Value, Vars)}};

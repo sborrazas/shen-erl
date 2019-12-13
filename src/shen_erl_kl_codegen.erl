@@ -189,20 +189,30 @@ compile_exp(['trap-error', Body, Handler], Env) ->
   erl_syntax:try_expr([CBody], [CHandler]);
 
 %% Factorization
-compile_exp(['%%let-label', [Label], LabelBody, Body], Env) ->
-  EmptyLambda = ['freeze', LabelBody],
-  compile_exp(['let', Label, EmptyLambda, Body], Env);
-
 compile_exp(['%%let-label', [Label | Vars], LabelBody, Body], Env) ->
-  NestedLambdas = lists:foldr(fun
-                                (Var, NestedBody) -> ['lambda', Var, NestedBody]
+  {CVars, LabelBodyEnv} = lists:foldr(fun
+                                (Var, {CVars, EnvAcc}) ->
+                                  {VarName, EnvAcc2} =
+                                    shen_erl_kl_env:store_var(EnvAcc, Var, false),
+                                  {[erl_syntax:variable(VarName) | CVars], EnvAcc2}
                               end,
-                              LabelBody,
+                              {[], Env},
                               Vars),
-  compile_exp(['let', Label, NestedLambdas, Body], Env);
+  CLabelBody = compile_exp(LabelBody, LabelBodyEnv),
+  CClause = erl_syntax:clause(CVars, [], [CLabelBody]),
+  CLetLabel = erl_syntax:fun_expr([CClause]),
+
+  {LetVar, Env2} = shen_erl_kl_env:store_var(Env, Label, false),
+
+  CBody = compile_exp(Body, Env2),
+  CLetClause = erl_syntax:clause([erl_syntax:variable(LetVar)], none, [CBody]),
+
+  erl_syntax:case_expr(CLetLabel, [CLetClause]);
 
 compile_exp(['%%goto-label', Label | Args], Env) ->
-  compile_exp([Label | Args], Env);
+  {ok, VarName} = shen_erl_kl_env:fetch(Env, Label),
+  CArgs = [compile_exp(Arg, Env) || Arg <- Args],
+  erl_syntax:application(erl_syntax:variable(VarName), CArgs);
 
 compile_exp(['%%return', Exp], Env) ->
   compile_exp(Exp, Env);
