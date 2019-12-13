@@ -23,8 +23,8 @@
 -define(START_TIME_KEY, '__kl_start_time').
 
 -define(PORT_KL_MODS, [shen_erl_kl_primitives,
-                       shen_erl_kl_overrides,
                        shen_erl_kl_extensions]).
+-define(PORT_KL_NON_OVERRIDABLE_MODS, [shen_erl_kl_overrides]).
 
 %%%===================================================================
 %%% API
@@ -36,9 +36,12 @@ init() ->
   ets:new(?VALUES_STORE_NAME, [set, named_table]),
   ets:new(?VARIABLE_COUNTER_STORE_NAME, [set, named_table]),
   set_val(?START_TIME_KEY, calendar:datetime_to_gregorian_seconds(calendar:universal_time())),
-  [[set_mfa(FunName, {Mod, FunName, Arity}) ||
+  [[set_mfa(FunName, {Mod, FunName, Arity}, true) ||
      {FunName, Arity} <- Mod:module_info(exports),
      FunName =/= module_info] || Mod <- ?PORT_KL_MODS],
+  [[set_mfa(FunName, {Mod, FunName, Arity}, false) ||
+     {FunName, Arity} <- Mod:module_info(exports),
+     FunName =/= module_info] || Mod <- ?PORT_KL_NON_OVERRIDABLE_MODS],
   ok.
 
 -spec start_time() -> non_neg_integer().
@@ -48,26 +51,19 @@ start_time() ->
 
 -spec get_mfa(atom()) -> {ok, mfa()} | not_found.
 get_mfa(FunName) ->
-  try ets:lookup(?FUNCTIONS_STORE_NAME, FunName) of
-    [{FunName, Arity}] -> {ok, Arity};
-    [] -> not_found
-  catch
-    error:badarg -> not_found
+  case lookup(?FUNCTIONS_STORE_NAME, FunName) of
+    {ok, {MFA, _IsOverridable}} -> {ok, MFA};
+    not_found -> not_found
   end.
 
 -spec set_mfa(atom(), mfa()) -> ok.
 set_mfa(FunName, MFA) ->
-  ets:insert(?FUNCTIONS_STORE_NAME, {FunName, MFA}),
+  set_mfa(FunName, MFA, true),
   ok.
 
 -spec get_val(atom()) -> {ok, term()} | not_found.
 get_val(Key) ->
-  try ets:lookup(?VALUES_STORE_NAME, Key) of
-    [{Key, Val}] -> {ok, Val};
-    [] -> not_found
-  catch
-    error:badarg -> not_found
-  end.
+  lookup(?VALUES_STORE_NAME, Key).
 
 -spec set_val(atom(), term()) -> ok.
 set_val(Key, Val) ->
@@ -76,17 +72,35 @@ set_val(Key, Val) ->
 
 -spec get_varname() -> non_neg_integer().
 get_varname() ->
-  Counter = try
-              ets:lookup(?VARIABLE_COUNTER_STORE_NAME, ?VARIABLE_COUNTER_KEY)
-            of
-              [{?VARIABLE_COUNTER_KEY, C}] -> C;
-              [] -> 1
-            catch
-              error:badarg -> 1
-            end,
+  Counter = lookup(?VARIABLE_COUNTER_STORE_NAME, ?VARIABLE_COUNTER_KEY, 1),
   ets:insert(?VARIABLE_COUNTER_STORE_NAME, {?VARIABLE_COUNTER_KEY, Counter + 1}),
   Counter.
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+lookup(Tab, Key) ->
+  case lookup(Tab, Key, not_found) of
+    not_found -> not_found;
+    Val -> {ok, Val}
+  end.
+
+lookup(Tab, Key, Default) ->
+  try
+    ets:lookup(Tab, Key)
+  of
+    [{Key, Val}] -> Val;
+    [] -> Default
+  catch
+    error:badarg -> Default
+  end.
+
+set_mfa(FunName, MFA, false) ->
+  ets:insert(?FUNCTIONS_STORE_NAME, {FunName, {MFA, false}});
+set_mfa(FunName, MFA, true) ->
+  case lookup(?FUNCTIONS_STORE_NAME, FunName) of
+    {ok, {_MFA, false}} -> ok;
+    {ok, {_MFA, true}} -> ets:insert(?FUNCTIONS_STORE_NAME, {FunName, {MFA, true}});
+    not_found -> ets:insert(?FUNCTIONS_STORE_NAME, {FunName, {MFA, true}})
+  end.
