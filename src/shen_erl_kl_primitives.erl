@@ -141,8 +141,10 @@ str([Car | Cdr]) ->
   {string, StrCar} = str(Car),
   {string, StrCdr} = str(Cdr),
   {string, lists:flatten(io_lib:format("(~s, ~s)", [StrCar, StrCdr]))};
-str({vector, Vec}) ->
-  {string, lists:flatten(io_lib:format("VECTOR: ~p", [Vec]))};
+str({vector, Length, Vec}) ->
+  {string, lists:flatten(io_lib:format("VECTOR: ~p[~B]", [Vec, Length]))};
+str({dict, Dict}) ->
+  {string, lists:flatten(io_lib:format("DICTIONARY: ~p", [Dict]))};
 str([]) ->
   {string, "[]"}.
 
@@ -159,22 +161,22 @@ cn({string, Str1}, {string, Str2}) -> {string, Str1 ++ Str2}.
 
 %% absvector
 absvector(Length) ->
-  {vector, shen_erl_kl_vector:new(Length)}.
+  {vector, Length, shen_erl_global_stores:dict_new()}.
 
 %% address->
-'address->'({vector, Vec}, Index, Val) ->
-  shen_erl_kl_vector:set(Vec, Index, Val),
-  {vector, Vec}.
+'address->'({vector, Length, Vec}, Index, Val) -> %when Index < Length ->
+  shen_erl_global_stores:dict_set(Vec, Index, Val),
+  {vector, Length, Vec}.
 
 %% <-address
-'<-address'({vector, Vec}, Index) ->
-  case shen_erl_kl_vector:get(Vec, Index) of
-    {ok, Val} -> Val;
-    out_of_bounds -> 'simple-error'({string, "Index out of bounds"})
-  end.
+'<-address'({vector, Length, Vec}, Index) when Index < Length ->
+  {ok, Val} = shen_erl_global_stores:dict_get(Vec, Index),
+  Val;
+'<-address'({vector, _Length, _Vec}, _Index) ->
+  'simple-error'({string, "Index out of bounds"}).
 
 %% absvector?
-'absvector?'({vector, _Vec}) -> true;
+'absvector?'({vector, _Length, _Vec}) -> true;
 'absvector?'(_Val) -> false.
 
 %% cons?

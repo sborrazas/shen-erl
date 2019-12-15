@@ -11,7 +11,15 @@
          set_mfa/2,
          get_val/1,
          set_val/2,
-         get_varname/0]).
+         get_varname/0,
+         dict_new/0,
+         dict_count/1,
+         dict_set/3,
+         dict_get/2,
+         dict_rm/2,
+         dict_fold/3,
+         dict_keys/1,
+         dict_values/1]).
 
 %% Macros
 -define(FUNCTIONS_STORE_NAME, '_kl_funs_store').
@@ -25,6 +33,8 @@
 -define(PORT_KL_MODS, [shen_erl_kl_primitives,
                        shen_erl_kl_extensions]).
 -define(PORT_KL_NON_OVERRIDABLE_MODS, [shen_erl_kl_overrides]).
+
+-opaque dict() :: ets:tid().
 
 %%%===================================================================
 %%% API
@@ -75,6 +85,41 @@ get_varname() ->
   Counter = lookup(?VARIABLE_COUNTER_STORE_NAME, ?VARIABLE_COUNTER_KEY, 1),
   ets:insert(?VARIABLE_COUNTER_STORE_NAME, {?VARIABLE_COUNTER_KEY, Counter + 1}),
   Counter.
+
+-spec dict_new() -> dict().
+dict_new() ->
+  NewCounter = get_varname(),
+  DictName = list_to_atom("DICT" ++ integer_to_list(NewCounter)),
+  ets:new(DictName, [set, named_table]),
+  DictName.
+
+-spec dict_count(dict()) -> non_neg_integer().
+dict_count(Dict) ->
+  proplists:get_value(size, ets:info(Dict)).
+
+-spec dict_set(dict(), term(), term()) -> ok.
+dict_set(Dict, Key, Val) ->
+  ets:insert(Dict, {Key, Val}).
+
+-spec dict_get(dict(), term()) -> {ok, term()} | not_found.
+dict_get(Dict, Key) ->
+  lookup(Dict, Key).
+
+-spec dict_rm(dict(), term()) -> ok.
+dict_rm(Dict, Key) ->
+  ets:delete(Dict, Key).
+
+-spec dict_fold(dict(), fun((term(), term()) -> term()), term()) -> term().
+dict_fold(Dict, F, Init) ->
+  ets:foldl(F, Init, Dict).
+
+-spec dict_keys(dict()) -> [term()].
+dict_keys(Dict) ->
+  [K || {K, _V} <- ets:tab2list(Dict)].
+
+-spec dict_values(dict()) -> [term()].
+dict_values(Dict) ->
+  [V || {_K, V} <- ets:tab2list(Dict)].
 
 %%%===================================================================
 %%% Internal functions
