@@ -14,7 +14,11 @@
          'shen.dict-rm'/2,
          'shen.dict-fold'/3,
          'shen.dict-keys'/1,
-         'shen.dict-values'/1]).
+         'shen.dict-values'/1,
+         'hash'/2,
+         'not'/1,
+         'boolean?'/1,
+         'integer?'/1]).
 
 %%%===================================================================
 %%% API
@@ -22,6 +26,15 @@
 
 'symbol?'(Val) when is_atom(Val) -> true;
 'symbol?'(_Val) -> false.
+
+hash(Val, Bound) ->
+  erlang:phash2(Val, Bound).
+
+'not'(Val) -> not Val.
+
+'boolean?'(Val) -> is_boolean(Val).
+
+'integer?'(Val) -> is_integer(Val).
 
 %% Dictionary overrides
 'shen.dict'(_Size) ->
