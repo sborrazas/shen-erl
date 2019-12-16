@@ -14,6 +14,7 @@
          get_varname/0,
          dict_new/0,
          dict_count/1,
+         dict_set/2,
          dict_set/3,
          dict_get/2,
          dict_rm/2,
@@ -100,6 +101,10 @@ dict_count(Dict) ->
 -spec dict_set(dict(), term(), term()) -> ok.
 dict_set(Dict, Key, Val) ->
   ets:insert(Dict, {Key, Val}).
+
+-spec dict_set(dict(), [{term(), term()}]) -> ok.
+dict_set(Dict, Pairs) ->
+  ets:insert(Dict, Pairs).
 
 -spec dict_get(dict(), term()) -> {ok, term()} | not_found.
 dict_get(Dict, Key) ->

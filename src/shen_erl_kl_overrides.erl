@@ -5,7 +5,12 @@
 -module(shen_erl_kl_overrides).
 
 %% API
--export(['symbol?'/1,
+-export(['hash'/2,
+         'not'/1,
+         'boolean?'/1,
+         'integer?'/1,
+         '@p'/2,
+         'symbol?'/1,
          'shen.dict'/1,
          'shen.dict?'/1,
          'shen.dict-count'/1,
@@ -15,10 +20,10 @@
          'shen.dict-fold'/3,
          'shen.dict-keys'/1,
          'shen.dict-values'/1,
-         'hash'/2,
-         'not'/1,
-         'boolean?'/1,
-         'integer?'/1]).
+         'read-file-as-bytelist'/1,
+         'shen.read-file-as-charlist'/1,
+         'read-file-as-string'/1,
+         'cd'/1]).
 
 %%%===================================================================
 %%% API
@@ -35,6 +40,13 @@ hash(Val, Bound) ->
 'boolean?'(Val) -> is_boolean(Val).
 
 'integer?'(Val) -> is_integer(Val).
+
+'@p'(X, Y) ->
+  Dict = shen_erl_global_stores:dict_new(),
+  shen_erl_global_stores:dict_set(Dict, [{0, 'shen.tuple'},
+                                         {1, X},
+                                         {2, Y}]),
+  {vector, 3, Dict}.
 
 %% Dictionary overrides
 'shen.dict'(_Size) ->
@@ -70,3 +82,22 @@ hash(Val, Bound) ->
 
 'shen.dict-values'({dict, Dict}) ->
   shen_erl_global_stores:dict_values(Dict).
+
+%% Files
+'read-file-as-bytelist'({string, Filename}) ->
+  {ok, Binary} = file:read_file(Filename),
+  binary_to_list(Binary).
+
+'shen.read-file-as-charlist'({string, Filename}) ->
+  {ok, Binary} = file:read_file(Filename),
+  binary_to_list(Binary).
+
+'read-file-as-string'(Filename) ->
+  {ok, Binary} = file:read_file(Filename),
+  {string, binary_to_list(Binary)}.
+
+'cd'({string, ""}) ->
+  'cd'(shen_erl_kl_primitives:get('*home-directory*'));
+'cd'(DirStr = {string, Dir}) ->
+  shen_erl_kl_primitives:set('*home-directory*', DirStr),
+  file:set_cwd(Dir).
